@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@react-router/fs-routes':
+        specifier: ^7.5.0
+        version: 7.5.0(@react-router/dev@7.4.0(@react-router/serve@7.4.0(react-router@7.4.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(typescript@5.8.2))(@types/node@20.17.28)(babel-plugin-macros@3.1.0)(lightningcss@1.29.2)(react-router@7.4.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(typescript@5.8.2)(vite@5.4.15(@types/node@20.17.28)(lightningcss@1.29.2)))(typescript@5.8.2)
       '@react-router/node':
         specifier: ^7.4.0
         version: 7.4.0(react-router@7.4.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(typescript@5.8.2)
@@ -758,6 +761,16 @@ packages:
     peerDependencies:
       express: ^4.17.1 || ^5
       react-router: 7.4.0
+      typescript: ^5.1.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@react-router/fs-routes@7.5.0':
+    resolution: {integrity: sha512-2ymK6EVVO7SPUkpabhAvviGxHAnR6vnWOohjdW7gosArtFO7gt6GtdAeLcEsGr7nrEZJNua1uBZfGuCQlxZ5cg==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@react-router/dev': ^7.5.0
       typescript: ^5.1.0
     peerDependenciesMeta:
       typescript:
@@ -3005,6 +3018,13 @@ snapshots:
       '@react-router/node': 7.4.0(react-router@7.4.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(typescript@5.8.2)
       express: 4.21.2
       react-router: 7.4.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+    optionalDependencies:
+      typescript: 5.8.2
+
+  '@react-router/fs-routes@7.5.0(@react-router/dev@7.4.0(@react-router/serve@7.4.0(react-router@7.4.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(typescript@5.8.2))(@types/node@20.17.28)(babel-plugin-macros@3.1.0)(lightningcss@1.29.2)(react-router@7.4.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(typescript@5.8.2)(vite@5.4.15(@types/node@20.17.28)(lightningcss@1.29.2)))(typescript@5.8.2)':
+    dependencies:
+      '@react-router/dev': 7.4.0(@react-router/serve@7.4.0(react-router@7.4.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(typescript@5.8.2))(@types/node@20.17.28)(babel-plugin-macros@3.1.0)(lightningcss@1.29.2)(react-router@7.4.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(typescript@5.8.2)(vite@5.4.15(@types/node@20.17.28)(lightningcss@1.29.2))
+      minimatch: 9.0.5
     optionalDependencies:
       typescript: 5.8.2
 
