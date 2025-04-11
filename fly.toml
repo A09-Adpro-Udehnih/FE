@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for udehnih-fe-cool-feather-7623 on 2025-04-09T15:49:31+07:00
+# fly.toml app configuration file generated for udehnih-fe on 2025-04-09T15:49:31+07:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'udehnih-fe-cool-feather-7623'
+app = 'udehnih-fe'
 primary_region = 'sin'
 
 [build]
