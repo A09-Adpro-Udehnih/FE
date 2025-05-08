@@ -9,7 +9,7 @@ export default function Page() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <main>
         <Navbar />
-        <main className="pt-15 px-5 md:px-22 max-w-[1920px] mx-auto min-h-screen border-x-[2px] overflow-x-hidden flex flex-col items-center justify-center">
+        <main className="pt-15 px-5 md:px-22 max-w-[1920px] mx-auto min-h-screen border-x-[2px] overflow-x-hidden flex flex-col items-center">
           <Outlet />
           <Toaster />
         </main>

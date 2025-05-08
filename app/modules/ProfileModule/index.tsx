@@ -31,7 +31,7 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
-const ProfileModule = () => {
+export const ProfileModule = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -71,8 +71,8 @@ const ProfileModule = () => {
   };
 
   return (
-    <main className="container flex items-center justify-center min-h-screen py-12">
-      <Card className="w-full max-w-md">
+    <main className="container flex h-fit py-12">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Profile</CardTitle>
           <CardDescription>
@@ -172,5 +172,3 @@ const ProfileModule = () => {
     </main>
   );
 };
-
-export default ProfileModule;

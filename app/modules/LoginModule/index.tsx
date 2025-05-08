@@ -22,7 +22,7 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-const LoginModule = () => {
+export const LoginModule = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +54,7 @@ const LoginModule = () => {
   };
 
   return (
-    <main className="container flex items-center justify-center min-h-screen py-12">
+    <main className="container flex justify-center mt-30">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Login</CardTitle>
@@ -106,5 +106,3 @@ const LoginModule = () => {
     </main>
   );
 };
-
-export default LoginModule;
