@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useFetcher, useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -15,6 +15,8 @@ import { Alert, AlertDescription } from "~/components/ui/alert";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { LoginAction } from "./action";
+import { toast } from "sonner";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -25,9 +27,24 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export const LoginModule = () => {
   const navigate = useNavigate();
+  const fetcher = useFetcher<typeof LoginAction>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (fetcher.data?.success) {
+      toast.success(fetcher.data.message);
+      navigate("/");
+    } else {
+      if (fetcher.data?.message === "Unauthorized") {
+        setError("Email or password is incorrect");
+        toast.error("Email or password is incorrect");
+      } else {
+        toast.error(fetcher.data?.message);
+      }
+    }
+  }, [fetcher.data]);
+  
   const {
     register,
     handleSubmit,
@@ -41,12 +58,10 @@ export const LoginModule = () => {
     setError(null);
 
     try {
-      // TODO: Implement API call here
-      // const response = await loginUser(data);
-      // if (response.success) {
-      //   navigate("/profile");
-      // }
-      console.log("Login data:", data);
+      fetcher.submit(data, {
+        method: "POST",
+        action: "/login",
+      });
     } catch (err) {
       setError("Failed to login. Please try again.");
     } finally {
@@ -105,7 +120,10 @@ export const LoginModule = () => {
         </CardContent>
         <CardFooter>
           <p>
-            Don't have an account? <Link className="text-primary" to="/register">Register</Link>
+            Don't have an account?{" "}
+            <Link className="text-primary" to="/register">
+              Register
+            </Link>
           </p>
         </CardFooter>
       </Card>

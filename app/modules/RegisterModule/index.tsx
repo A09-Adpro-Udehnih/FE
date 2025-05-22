@@ -43,7 +43,6 @@ export const RegisterModule = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log(fetcher.data);
     if (fetcher.data?.success) {
       toast.success(fetcher.data.message);
       navigate("/login");
