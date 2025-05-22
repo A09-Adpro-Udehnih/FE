@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Menu, X } from "lucide-react";
 import { NAVIGATION_ITEMS } from "./const";
 import { ThemeToggler } from "~/utils/ThemeToggler";
@@ -16,8 +16,10 @@ const Navbar = () => {
   const [isLoggedIn] = useState(false); // This would come from your auth context
   const [userName] = useState("John Doe"); // This would come from your auth context
 
+  const navigate = useNavigate();
+
   const handleLogin = () => {
-    // Implement login logic
+    navigate("/login");
   };
 
   return (

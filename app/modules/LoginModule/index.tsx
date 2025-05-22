@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -7,6 +7,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
@@ -102,6 +103,11 @@ export const LoginModule = () => {
             </Button>
           </form>
         </CardContent>
+        <CardFooter>
+          <p>
+            Don't have an account? <Link className="text-primary" to="/register">Register</Link>
+          </p>
+        </CardFooter>
       </Card>
     </main>
   );
