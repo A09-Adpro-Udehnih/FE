@@ -3,8 +3,12 @@ import { createCookie } from "react-router";
 import jwt from "jsonwebtoken";
 
 export type UserPayload = {
-  id: string;
-  username: string;
+  sub: string;
+  userId: string;
+  email: string;
+  fullName: string;
+  role: string;
+  createdAt: string;
 };
 
 export const sessionCookie = createCookie("session", {
@@ -32,5 +36,5 @@ export async function getUserFromRequest(request: Request) {
   const cookie = await sessionCookie.parse(cookieHeader);
   if (!cookie) return null;
 
-  return jwt.decode(cookie);
+  return jwt.decode(cookie) as UserPayload;
 }

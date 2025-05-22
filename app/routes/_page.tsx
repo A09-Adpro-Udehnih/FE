@@ -1,8 +1,9 @@
 import Navbar from "~/components/elements/Navbar";
 import Footer from "~/components/elements/Footer";
-import { Outlet } from "react-router";
+import { Outlet, type LoaderFunctionArgs } from "react-router";
 import { ThemeProvider } from "~/context/theme-provider";
 import { Toaster } from "~/components/ui/sonner";
+import { getUserFromRequest } from "~/lib/auth.server";
 
 export default function Page() {
   return (
@@ -17,4 +18,14 @@ export default function Page() {
       </main>
     </ThemeProvider>
   );
+}
+
+export async function loader(args: LoaderFunctionArgs) {
+  const user = await getUserFromRequest(args.request);
+
+  if (user) {
+    return { isLoggedIn: true, username: user.fullName };
+  }
+
+  return { isLoggedIn: false };
 }
