@@ -1,6 +1,6 @@
 import Navbar from "~/components/elements/Navbar";
 import Footer from "~/components/elements/Footer";
-import { Outlet, type LoaderFunctionArgs } from "react-router";
+import { Outlet, redirect, type LoaderFunctionArgs } from "react-router";
 import { ThemeProvider } from "~/context/theme-provider";
 import { Toaster } from "~/components/ui/sonner";
 import { getUserFromRequest } from "~/lib/auth.server";
@@ -21,7 +21,17 @@ export default function Page() {
 }
 
 export async function loader(args: LoaderFunctionArgs) {
+  const unprotectedRoutes = ["/login", "/register"];
+  const url = new URL(args.request.url);
   const user = await getUserFromRequest(args.request);
+
+  if (user && unprotectedRoutes.includes(url.pathname)) {
+    return redirect("/");
+  }
+
+  if (!user && !unprotectedRoutes.includes(url.pathname) && url.pathname !== "/") {
+    return redirect("/login");
+  }
 
   if (user) {
     return { isLoggedIn: true, username: user.fullName };
