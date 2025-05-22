@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -22,6 +22,9 @@ import {
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useFetcher } from "react-router";
+import { toast } from "sonner";
+import type { RegisterAction } from "./action";
 
 const roleEnum = z.enum(["student", "teacher"]);
 
@@ -32,12 +35,22 @@ const registerSchema = z.object({
   role: roleEnum,
 });
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+export type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const RegisterModule = () => {
+  const fetcher = useFetcher<typeof RegisterAction>();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log(fetcher.data);
+    if (fetcher.data?.success) {
+      toast.success(fetcher.data.message);
+      navigate("/login");
+    } else {
+      toast.error(fetcher.data?.message);
+    }
+  }, [fetcher.data]);
 
   const {
     register,
@@ -49,20 +62,15 @@ export const RegisterModule = () => {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
     setError(null);
-
     try {
-      // TODO: Implement API call here
-      // const response = await registerUser(data);
-      // if (response.success) {
-      //   navigate("/login");
-      // }
-      console.log("Register data:", data);
+      fetcher.submit(data, {
+        method: "POST",
+        action: "/register",
+      });
     } catch (err) {
       setError("Failed to register. Please try again.");
-    } finally {
-      setIsLoading(false);
+      toast.error(err as string);
     }
   };
 
@@ -142,8 +150,12 @@ export const RegisterModule = () => {
                 <p className="text-sm text-red-500">{errors.role.message}</p>
               )}
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Registering..." : "Register"}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={fetcher.state === "submitting"}
+            >
+              {fetcher.state === "submitting" ? "Registering..." : "Register"}
             </Button>
           </form>
         </CardContent>
