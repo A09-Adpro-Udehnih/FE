@@ -1,7 +1,7 @@
 import React from 'react';
-import { useLoaderData } from 'react-router-dom'; // Pastikan ini yang benar, bukan 'react-router' jika sebelumnya error
+import { useLoaderData } from 'react-router';
+import { toast } from 'sonner'; // pastikan kamu install sonner untuk notifikasi
 
-// Asumsi tipe data (SESUAIKAN DENGAN DATA ASLI ANDA)
 interface RefundItem {
   id: string;
   amount: number;
@@ -28,13 +28,13 @@ interface DashboardData {
   tutorApplications: TutorApplicationItem[];
 }
 
-// Komponen untuk Kartu Data (dimodifikasi untuk menyertakan tombol)
 interface DataItemCardProps {
   item: RefundItem | PaymentItem | TutorApplicationItem;
   type: 'refund' | 'payment' | 'tutorApplication';
+  onAction: (id: string, type: string, action: 'approve' | 'reject') => void;
 }
 
-const DataItemCard: React.FC<DataItemCardProps> = ({ item, type }) => {
+const DataItemCard: React.FC<DataItemCardProps> = ({ item, type, onAction }) => {
   let cardTitle = '';
   const cardDetails: string[] = [];
 
@@ -42,7 +42,7 @@ const DataItemCard: React.FC<DataItemCardProps> = ({ item, type }) => {
     const payment = item as PaymentItem;
     cardTitle = `Payment Ref: ${payment.paymentReference}`;
     cardDetails.push(`Status: ${payment.status}`);
-    cardDetails.push(`Tanggal: ${new Date(payment.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`);
+    cardDetails.push(`Tanggal: ${new Date(payment.createdAt).toLocaleDateString('id-ID')}`);
   } else if (type === 'refund') {
     const refund = item as RefundItem;
     cardTitle = `Refund Amount: Rp ${refund.amount.toLocaleString('id-ID')}`;
@@ -51,33 +51,30 @@ const DataItemCard: React.FC<DataItemCardProps> = ({ item, type }) => {
     const application = item as TutorApplicationItem;
     cardTitle = `Pendaftar (ID): ${application.studentId}`;
     cardDetails.push(`Status: ${application.status}`);
-    cardDetails.push(`Tanggal Daftar: ${new Date(application.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`);
+    cardDetails.push(`Tanggal Daftar: ${new Date(application.createdAt).toLocaleDateString('id-ID')}`);
   }
 
   return (
-    <div
-      className="bg-white p-4 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow flex flex-col justify-between min-h-[150px]" // Menambahkan min-h untuk konsistensi & flex
-    >
-      <div> {/* Wrapper untuk konten atas */}
+    <div className="bg-white p-4 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow flex flex-col justify-between min-h-[150px]">
+      <div>
         <h3 className="font-semibold text-md text-blue-700 truncate mb-2">{cardTitle}</h3>
         {cardDetails.map((detail, index) => (
           <p key={index} className="text-sm text-gray-600 truncate">{detail}</p>
         ))}
       </div>
 
-      {/* Bagian Tombol Aksi */}
       <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end space-x-2">
         <button
-          type="button" // Tambahkan type="button" untuk mencegah submit form jika ada
-          className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50 transition-colors"
-          // onClick handler akan ditambahkan nanti
+          type="button"
+          className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition"
+          onClick={() => onAction(item.id, type, 'reject')}
         >
           Reject
         </button>
         <button
           type="button"
-          className="px-3 py-1.5 text-xs font-medium text-white bg-green-500 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 transition-colors"
-          // onClick handler akan ditambahkan nanti
+          className="px-3 py-1.5 text-xs font-medium text-white bg-green-500 rounded-md hover:bg-green-600 transition"
+          onClick={() => onAction(item.id, type, 'approve')}
         >
           Accept
         </button>
@@ -86,9 +83,37 @@ const DataItemCard: React.FC<DataItemCardProps> = ({ item, type }) => {
   );
 };
 
-
 export const StaffDashboardModule = () => {
   const dashboardData = useLoaderData() as DashboardData;
+
+  const handleApproval = async (
+    id: string,
+    type: string,
+    action: 'approve' | 'reject'
+  ) => {
+    try {
+      const fullurl = `${import.meta.env.VITE_API_URL}api/v1/staff/approval/${action}/${type}/${id}`;
+      const token = localStorage.getItem('token');
+      const res = await fetch(fullurl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      console.log(res)
+      if (!res.ok) {
+        const msg = await res.text();
+        toast.error(`Gagal ${action} ${type}: ${msg}`);
+        return;
+      }
+
+      toast.success(`${type} ${action === 'approve' ? 'disetujui' : 'ditolak'}!`);
+    } catch (err) {
+      toast.error('Terjadi kesalahan saat mengirim permintaan.');
+      console.error(err);
+    }
+  };
 
   const sections = [
     { title: 'Permintaan Pengembalian Dana (Refunds)', data: dashboardData?.refunds || [], type: 'refund' as const },
@@ -111,6 +136,7 @@ export const StaffDashboardModule = () => {
                     key={item.id}
                     item={item}
                     type={section.type}
+                    onAction={handleApproval}
                   />
                 ))}
               </div>
@@ -123,5 +149,3 @@ export const StaffDashboardModule = () => {
     </main>
   );
 };
-
-// export default StaffDashboardModule; // Jika Anda ingin
