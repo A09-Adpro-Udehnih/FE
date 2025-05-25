@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { useFetcher, useLoaderData } from "react-router";
-import type { TutorsAction } from "./action";
+import { useState, useEffect } from "react";
+import { useFetcher, useLoaderData, useNavigate, Link } from "react-router";
 import type { TutorApplication } from "./loader";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -63,13 +62,37 @@ interface Course {
 }
 
 export const TutorsModule = () => {
-  const fetcher = useFetcher<typeof TutorsAction>();
+  const navigate = useNavigate();
+  const fetcher = useFetcher();
   const { user, tutorApplication, userCourses, error } = useLoaderData<{
     user: any;
     tutorApplication: TutorApplication | null;
     userCourses: Course[] | null;
     error: string | null;
   }>();
+
+  // Redirect based on tutor application status
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (!tutorApplication) {
+      navigate('/tutorRegistration');
+      return;
+    }
+
+    if (tutorApplication.status !== 'ACCEPTED') {
+      navigate('/tutorRegistration');
+      return;
+    }
+  }, [user, tutorApplication, navigate]);
+
+  // If not an accepted tutor, don't render the tutors module content
+  if (!user || !tutorApplication || tutorApplication.status !== 'ACCEPTED') {
+    return <div className="container py-10 text-center">Redirecting...</div>;
+  }
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
