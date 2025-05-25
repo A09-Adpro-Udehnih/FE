@@ -3,7 +3,7 @@ import { getSessionCookie } from "~/lib/auth.server";
 
 export async function StaffDashboardLoader({ request }: LoaderFunctionArgs) {
   // Langsung tuju ke backend staff di port 8082
-  const fullUrl = `http://localhost/api/v1/staff/resources/dashboard`;
+  const fullUrl = `${import.meta.env.VITE_API_URL}api/v1/staff/resources/dashboard`;
 
   console.log("==> Loader fetching directly from:", fullUrl);
 
