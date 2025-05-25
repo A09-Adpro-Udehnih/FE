@@ -25,16 +25,26 @@ export async function TutorsLoader({ request }: LoaderFunctionArgs) {
     // Check if user has a tutor application
     let applicationResponse;
     try {
-      applicationResponse = await fetcher<{ 
-        success: boolean;
-        data: TutorApplication | null;
-        message: string;
-      }>("tutors/registration", request, true);
+      const response = await fetcher<{
+        status: string;
+        tutorApplicationId?: string; 
+      }>("/tutors/registration", request, true);
+      
+      applicationResponse = {
+        success: response.success,
+        data: {
+          id: response.data?.tutorApplicationId || "",
+          status: response.data?.status || null,
+          studentId: user.userId || user.sub || "",
+          createdAt: new Date().toISOString()
+        },
+        message: response.message
+      };
     } catch (error) {
       console.log('Failed to fetch tutor application:', error);
       applicationResponse = { success: false, data: null, message: 'Not found' };
     }
-
+    
     // If user is a tutor, fetch their courses
     let coursesResponse = null;
     const isTeacher = user.role === "teacher" || user.role === "TEACHER";
@@ -42,11 +52,13 @@ export async function TutorsLoader({ request }: LoaderFunctionArgs) {
     
     if (isTeacher || isAcceptedTutor) {
       try {
-        coursesResponse = await fetcher<{
-          success: boolean;
-          courses: any[];
-          message: string;
-        }>("courses/mine", request, true);
+        const response = await fetcher<{ courses: any[] }>("/courses/mine", request, true);
+        
+        coursesResponse = {
+          success: response.success,
+          courses: response.data?.courses || [],
+          message: response.message
+        };
       } catch (error) {
         console.log('Failed to fetch courses:', error);
         coursesResponse = { success: false, courses: [], message: 'Failed to load courses' };

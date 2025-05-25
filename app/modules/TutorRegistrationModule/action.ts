@@ -2,19 +2,26 @@ import type { ActionFunctionArgs } from "react-router";
 import { fetcher } from "~/lib/fetch.server";
 
 export async function TutorRegistrationAction({ request }: ActionFunctionArgs) {
+  console.log("TutorRegistrationAction called");
   const formData = await request.formData();
   const intent = formData.get("intent");
+  console.log("Intent:", intent);
 
   // Submit tutor application
   if (intent === "apply") {
     try {
-      const response = await fetcher(
+      console.log("Sending tutor application request...");
+      const response = await fetcher<{
+        status: string | null;
+        tutorApplicationId?: string;
+      }>(
         "/tutors/registration",
         request, 
         true,
         { method: "POST" }
       );
       
+      console.log("Application response:", response);
       return response;
     } catch (error) {
       console.error("Error submitting tutor application:", error);
@@ -31,7 +38,10 @@ export async function TutorRegistrationAction({ request }: ActionFunctionArgs) {
   // Cancel tutor application
   if (intent === "cancel") {
     try {
-      const response = await fetcher(
+      const response = await fetcher<{
+        status?: string | null;
+        tutorApplicationId?: string;
+      }>(
         "/tutors/registration", 
         request, 
         true,

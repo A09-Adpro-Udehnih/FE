@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLoaderData, useFetcher, useNavigate } from 'react-router';
 import { Button } from '~/components/ui/button';
 import { 
@@ -35,18 +35,47 @@ export const TutorRegistrationModule = () => {
   const isCancelling = 
     fetcher.state === 'submitting' && 
     fetcher.formData?.get('intent') === 'cancel';
+    
+  // Monitor fetcher state for debugging
+  useEffect(() => {
+    console.log("Fetcher state:", fetcher.state);
+    console.log("Fetcher data:", fetcher.data);
+    
+    // If submission was successful and we got an ACCEPTED status, redirect to tutors page
+    if (fetcher.data?.success && fetcher.data?.data?.status === 'ACCEPTED') {
+      navigate('/tutors');
+    }
+    
+    // If submission was successful, reload the page after a delay to show updated status
+    if (fetcher.data?.success && !fetcher.data?.data?.status) {
+      const timer = setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [fetcher.state, fetcher.data, navigate]);
 
   const handleSubmitApplication = () => {
+    console.log("Submitting tutor application...");
+    // Creating a FormData object for better compatibility
+    const formData = new FormData();
+    formData.append('intent', 'apply');
+    
     fetcher.submit(
-      { intent: 'apply' },
-      { method: 'post' }
+      formData,
+      { method: 'post', action: '/tutorRegistration' }
     );
   };
 
   const handleCancelApplication = () => {
+    console.log("Cancelling tutor application...");
+    // Creating a FormData object for better compatibility
+    const formData = new FormData();
+    formData.append('intent', 'cancel');
+    
     fetcher.submit(
-      { intent: 'cancel' },
-      { method: 'post' }
+      formData,
+      { method: 'post', action: '/tutorRegistration' }
     );
   };
 
@@ -56,8 +85,42 @@ export const TutorRegistrationModule = () => {
 
   // Display appropriate UI based on application status
   const renderContent = () => {
+    // Handle error state
+    if (!response.success) {
+      return (
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Error Loading Status
+            </CardTitle>
+            <CardDescription>
+              We couldn't load your tutor application status.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error {response.code}</AlertTitle>
+              <AlertDescription>
+                {response.message}
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+          <CardFooter className="flex justify-end">
+            <Button onClick={handleSubmitApplication}>
+              Apply to be a Tutor
+            </Button>
+          </CardFooter>
+        </Card>
+      );
+    }
+    
+    // Get status from data
+    const status = response.data?.status;
+    
     // If we have a pending application
-    if (response.status === 'PENDING') {
+    if (status === 'PENDING') {
       return (
         <Card className="max-w-md mx-auto">
           <CardHeader>
@@ -99,7 +162,7 @@ export const TutorRegistrationModule = () => {
     }
     
     // If application was accepted, redirect to tutors module
-    if (response.status === 'ACCEPTED') {
+    if (status === 'ACCEPTED') {
       return (
         <Card className="max-w-md mx-auto">
           <CardHeader>
@@ -130,7 +193,7 @@ export const TutorRegistrationModule = () => {
     }
     
     // If application was denied
-    if (response.status === 'DENIED') {
+    if (status === 'DENIED') {
       return (
         <Card className="max-w-md mx-auto">
           <CardHeader>
@@ -190,6 +253,13 @@ export const TutorRegistrationModule = () => {
             <li>Track student enrollments and progress</li>
             <li>Receive payments for your courses</li>
           </ul>
+          
+          {fetcher.data && (
+            <Alert className={`mt-4 ${fetcher.data.success ? 'bg-green-50' : 'bg-red-50'}`}>
+              <AlertTitle>{fetcher.data.success ? 'Success!' : 'Error'}</AlertTitle>
+              <AlertDescription>{fetcher.data.message}</AlertDescription>
+            </Alert>
+          )}
         </CardContent>
         <CardFooter className="flex justify-end">
           <Button 
