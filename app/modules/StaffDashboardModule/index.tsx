@@ -92,9 +92,9 @@ export const StaffDashboardModule = () => {
     action: 'approve' | 'reject'
   ) => {
     try {
-      const fullurl = `${import.meta.env.VITE_API_URL}api/v1/staff/approval/${action}/${type}/${id}`;
+      // const fullurl = ``;
       const token = localStorage.getItem('token');
-      const res = await fetch(fullurl, {
+      const res = await fetch(`http://localhost:8082/approval/${action}/${type}/${id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

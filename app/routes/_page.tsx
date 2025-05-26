@@ -34,7 +34,7 @@ export async function loader(args: LoaderFunctionArgs) {
   }
 
   if (user) {
-    return { isLoggedIn: true, username: user.fullName };
+    return { isLoggedIn: true, username: user.fullName, role: user.role };
   }
 
   return { isLoggedIn: false };

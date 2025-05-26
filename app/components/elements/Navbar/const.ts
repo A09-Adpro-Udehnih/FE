@@ -18,5 +18,5 @@ export const NAVIGATION_ITEMS = [
   {
     label: "Contact",
     href: "/contact",
-  },
+  },    
 ] as const;
