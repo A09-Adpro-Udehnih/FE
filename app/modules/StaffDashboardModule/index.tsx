@@ -1,11 +1,16 @@
 import React from 'react';
 import { useLoaderData } from 'react-router';
-import { toast } from 'sonner'; // pastikan kamu install sonner untuk notifikasi
+import { toast } from 'sonner'; 
+
+interface PaymentRef {
+  paymentReference: string;
+}
 
 interface RefundItem {
   id: string;
   amount: number;
   status: string;
+  payment: PaymentRef;
 }
 
 interface PaymentItem {
@@ -47,6 +52,7 @@ const DataItemCard: React.FC<DataItemCardProps> = ({ item, type, onAction }) => 
     const refund = item as RefundItem;
     cardTitle = `Refund Amount: Rp ${refund.amount.toLocaleString('id-ID')}`;
     cardDetails.push(`Status: ${refund.status}`);
+    cardDetails.push(`Payment Ref: ${refund.payment?.paymentReference ?? '-'}`); 
   } else if (type === 'tutorApplication') {
     const application = item as TutorApplicationItem;
     cardTitle = `Pendaftar (ID): ${application.studentId}`;
@@ -94,7 +100,7 @@ export const StaffDashboardModule = () => {
     try {
       // const fullurl = ``;
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:8082/approval/${action}/${type}/${id}`, {
+      const res = await fetch(`http://localhost/api/v1/staff/approval/${action}/${type}/${id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

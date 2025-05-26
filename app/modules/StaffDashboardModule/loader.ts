@@ -18,7 +18,7 @@ export async function StaffDashboardLoader({ request }: LoaderFunctionArgs) {
   }
 
   console.log("==> Role check passed:", user.role);
-  // Langsung tuju ke backend staff di port 8082
+
   const fullUrl = `${import.meta.env.VITE_API_URL}api/v1/staff/resources/dashboard`;
 
   console.log("==> Loader fetching directly from:", fullUrl);
