@@ -1,16 +1,28 @@
-import { useLoaderData, Form } from "react-router";
+import { useLoaderData, Form, useFetcher, useNavigate } from "react-router";
 import type { RefundLoader } from "./loader";
+import type { RefundAction } from "./action";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Textarea } from "~/components/ui/textarea";
+import { Alert, AlertDescription } from "~/components/ui/alert";
+import { useEffect } from "react";
 
 export const RefundModule = () => {
-  const { paymentId, error } = useLoaderData<typeof RefundLoader>();
+  const { paymentId, error: loaderError } = useLoaderData<typeof RefundLoader>();
+  const fetcher = useFetcher<typeof RefundAction>();
+  const navigate = useNavigate();
 
-  if (error) {
+  useEffect(() => {
+    if (fetcher.data?.success) {
+      // Redirect back to payments page after successful refund request
+      navigate("/payments");
+    }
+  }, [fetcher.data]);
+
+  if (loaderError) {
     return (
       <div className="p-4">
-        <div className="text-red-500">Error: {error}</div>
+        <div className="text-red-500">Error: {loaderError}</div>
       </div>
     );
   }
@@ -23,7 +35,13 @@ export const RefundModule = () => {
             <CardTitle>Request Refund</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form method="post" className="space-y-4">
+            {fetcher.data?.error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{fetcher.data.error}</AlertDescription>
+              </Alert>
+            )}
+            
+            <fetcher.Form method="post" className="space-y-4">
               <input type="hidden" name="actionType" value="requestRefund" />
               <input type="hidden" name="paymentId" value={paymentId} />
               
@@ -41,14 +59,18 @@ export const RefundModule = () => {
               </div>
 
               <div className="space-y-2">
-                <Button type="submit" className="w-full">
-                  Submit Refund Request
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={fetcher.state === "submitting"}
+                >
+                  {fetcher.state === "submitting" ? "Submitting..." : "Submit Refund Request"}
                 </Button>
                 <p className="text-sm text-gray-500 text-center">
                   Your refund request will be reviewed by our team. We'll notify you once a decision has been made.
                 </p>
               </div>
-            </Form>
+            </fetcher.Form>
           </CardContent>
         </Card>
       </div>
