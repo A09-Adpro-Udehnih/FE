@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useFetcher } from 'react-router-dom';
+import { useFetcher, useNavigate } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -86,38 +86,11 @@ const PaymentCard: React.FC<PaymentCardProps> = ({
   showActions = true, 
   onPaymentUpdate 
 }) => {
+  const navigate = useNavigate();
   const fetcher = useFetcher();
-  const [showRefundForm, setShowRefundForm] = useState(false);
-  const [refundReason, setRefundReason] = useState('');
-
-  const handleStatusUpdate = (newStatus: string) => {
-    fetcher.submit(
-      {
-        actionType: 'updatePaymentStatus',
-        paymentId: payment.paymentId,
-        status: newStatus,
-      },
-      { method: 'POST' }
-    );
-  };
 
   const handleRefundRequest = () => {
-    if (!refundReason.trim()) {
-      alert('Please provide a reason for refund');
-      return;
-    }
-
-    fetcher.submit(
-      {
-        actionType: 'requestRefund',
-        paymentId: payment.paymentId,
-        reason: refundReason,
-      },
-      { method: 'POST' }
-    );
-
-    setShowRefundForm(false);
-    setRefundReason('');
+    navigate(`/refund/${payment.paymentId}`);
   };
 
   useEffect(() => {
@@ -127,197 +100,45 @@ const PaymentCard: React.FC<PaymentCardProps> = ({
   }, [fetcher.state, fetcher.data, payment.paymentId, onPaymentUpdate]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Card className="group hover:shadow-lg transition-all duration-300 border-opacity-50 hover:border-opacity-100">
-        <CardHeader className="space-y-1">
-          <div className="flex justify-between items-start">
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          <span>Payment #{payment.paymentId.substring(0, 8)}</span>
+          <Badge className={getStatusColor(payment.status)}>{payment.status}</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-2">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-                {payment.paymentReference}
-              </CardTitle>
-              <CardDescription className="text-sm text-gray-500">
-                Payment ID: {payment.paymentId}
-              </CardDescription>
+              <p className="text-sm text-gray-500">Amount</p>
+              <p className="font-medium">${payment.amount}</p>
             </div>
-            <PaymentStatusBadge status={payment.status} />
+            <div>
+              <p className="text-sm text-gray-500">Method</p>
+              <p className="font-medium">{payment.paymentMethod}</p>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Amount</p>
-              <p className="text-2xl font-bold text-green-600">
-                Rp {payment.amount.toLocaleString('id-ID')}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Method</p>
-              <p className="text-base font-semibold">{payment.paymentMethod.replace('_', ' ')}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">User ID</p>
-              <p className="text-sm font-medium truncate">{payment.userId}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Course ID</p>
-              <p className="text-sm font-medium truncate">{payment.courseId}</p>
-            </div>
+          
+          <div>
+            <p className="text-sm text-gray-500">Course</p>
+            <p className="font-medium">{payment.courseId}</p>
           </div>
 
-          <div className="mt-6 flex justify-between text-sm text-gray-500">
-            <span>Created: {new Date(payment.createdAt).toLocaleString('id-ID')}</span>
-            {payment.updatedAt && (
-              <span>Updated: {new Date(payment.updatedAt).toLocaleString('id-ID')}</span>
-            )}
-          </div>
-
-          {payment.refundReason && (
-            <Alert variant="destructive" className="mt-4 bg-red-50">
-              <AlertDescription className="flex items-center">
-                <span className="mr-2">⚠️</span>
-                <strong>Refund Reason:</strong> {payment.refundReason}
-              </AlertDescription>
-            </Alert>
+          {showActions && payment.status === "PAID" && (
+            <div className="mt-4">
+              <Button 
+                onClick={handleRefundRequest}
+                variant="outline" 
+                className="w-full"
+              >
+                Request Refund
+              </Button>
+            </div>
           )}
-        </CardContent>
-
-        {showActions && (
-          <CardFooter className="flex flex-wrap gap-2 pt-6 border-t">
-            <AnimatePresence>
-              {payment.status === 'PENDING' && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                  >
-                    <Button
-                      variant="default"
-                      onClick={() => handleStatusUpdate('PAID')}
-                      disabled={fetcher.state === 'submitting'}
-                      className="bg-green-500 hover:bg-green-600"
-                    >
-                      <span className="mr-2">✓</span> Approve
-                    </Button>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                  >
-                    <Button
-                      variant="destructive"
-                      onClick={() => handleStatusUpdate('FAILED')}
-                      disabled={fetcher.state === 'submitting'}
-                    >
-                      <span className="mr-2">✕</span> Reject
-                    </Button>
-                  </motion.div>
-                </>
-              )}
-
-              {payment.status === 'PAID' && !showRefundForm && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                >
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowRefundForm(true)}
-                    className="text-orange-500 border-orange-500 hover:bg-orange-50"
-                  >
-                    <span className="mr-2">↺</span> Request Refund
-                  </Button>
-                </motion.div>
-              )}
-
-              {payment.status === 'REFUND_REQUESTED' && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                  >
-                    <Button
-                      variant="default"
-                      onClick={() => handleStatusUpdate('REFUNDED')}
-                      disabled={fetcher.state === 'submitting'}
-                      className="bg-purple-500 hover:bg-purple-600"
-                    >
-                      <span className="mr-2">↩</span> Process Refund
-                    </Button>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                  >
-                    <Button
-                      variant="outline"
-                      onClick={() => handleStatusUpdate('PAID')}
-                      disabled={fetcher.state === 'submitting'}
-                    >
-                      <span className="mr-2">✕</span> Deny Refund
-                    </Button>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {showRefundForm && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="w-full space-y-4"
-                >
-                  <Textarea
-                    value={refundReason}
-                    onChange={(e) => setRefundReason(e.target.value)}
-                    placeholder="Please provide a reason for the refund..."
-                    className="min-h-[100px] resize-none"
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      variant="default"
-                      onClick={handleRefundRequest}
-                      disabled={fetcher.state === 'submitting'}
-                      className="bg-orange-500 hover:bg-orange-600"
-                    >
-                      Submit Refund Request
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowRefundForm(false);
-                        setRefundReason('');
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </CardFooter>
-        )}
-
-        {fetcher.state === 'submitting' && (
-          <CardFooter>
-            <div className="w-full flex items-center justify-center py-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
-            </div>
-          </CardFooter>
-        )}
-      </Card>
-    </motion.div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

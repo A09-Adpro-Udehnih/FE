@@ -11,6 +11,7 @@ interface RefundResponse {
   reason: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
+  requestedAt?: string;
 }
 
 export async function RefundAction({ request }: ActionFunctionArgs) {
@@ -21,44 +22,41 @@ export async function RefundAction({ request }: ActionFunctionArgs) {
   console.log("==> Refund Action called with type:", actionType);
 
   try {
-    switch (actionType) {
-      case "requestRefund": {
-        const paymentId = formData.get("paymentId");
-        const reason = formData.get("reason");
-
-        if (!paymentId || !reason) {
-          throw new Error("Payment ID and reason are required");
-        }
-
-        const refundRequest: RefundRequest = {
-          reason: reason.toString(),
-        };
-
-        const res = await fetch(
-          `http://localhost:8083/api/v1/payment/refunds/${paymentId}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify(refundRequest),
-          }
-        );
-
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message || "Failed to request refund");
-        }
-
-        const result = await res.json();
-        console.log("==> Refund requested successfully:", result);
-        return { success: true, refund: result };
-      }
-
-      default:
-        throw new Error(`Unknown action type: ${actionType}`);
+    if (actionType !== "requestRefund") {
+      throw new Error("Invalid action type");
     }
+
+    const paymentId = formData.get("paymentId");
+    const reason = formData.get("reason");
+
+    if (!paymentId || !reason) {
+      throw new Error("Payment ID and reason are required");
+    }
+
+    const refundRequest: RefundRequest = {
+      reason: reason.toString(),
+    };
+
+    const res = await fetch(
+      `http://localhost:8083/api/v1/payment/${paymentId}/refund`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(refundRequest),
+      }
+    );
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || "Failed to request refund");
+    }
+
+    const result = await res.json();
+    console.log("==> Refund requested successfully:", result);
+    return { success: true, refund: result };
   } catch (error) {
     console.error("==> Refund Action error:", error);
     return {
