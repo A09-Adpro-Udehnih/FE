@@ -1,6 +1,7 @@
 import React from 'react'
-import { useLoaderData, useNavigate, Link } from 'react-router'
+import { useLoaderData, useNavigate, Link, useSubmit, useActionData } from 'react-router'
 import { BookOpen, User, ArrowLeft, Calendar, FileText, RefreshCcw, X } from "lucide-react"
+import { toast, Toaster } from "sonner"
 import type { CourseEnrolledDetailLoader } from './loader'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
@@ -12,8 +13,38 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 export const CourseEnrolledDetailModule = () => {
   const course = useLoaderData<typeof CourseEnrolledDetailLoader>();
   const navigate = useNavigate();
+  const submit = useSubmit();
+  const actionData = useActionData();
   const [isRefundDialogOpen, setIsRefundDialogOpen] = React.useState(false);
+  const [isProcessingRefund, setIsProcessingRefund] = React.useState(false);
   const [selectedArticle, setSelectedArticle] = React.useState<{id: string; title: string; content: string} | null>(null);
+
+  // Handle action data updates
+  React.useEffect(() => {
+    if (actionData) {
+      if (actionData.success) {
+        toast.success(actionData.message, {
+          description: "Your refund request has been processed."
+        });
+        
+        // Redirect if provided
+        if (actionData.redirectTo) {
+          setTimeout(() => {
+            navigate(actionData.redirectTo);
+          }, 1000); // Short delay to show the toast
+        }
+      } else if (actionData.message) {
+        toast.error("Refund Failed", {
+          description: actionData.message
+        });
+      }
+      
+      // Reset refund processing state
+      setIsProcessingRefund(false);
+      // Close dialog
+      setIsRefundDialogOpen(false);
+    }
+  }, [actionData, navigate]);
 
   // Format enrollment date
   const formattedDate = new Date(course.enrollmentDate).toLocaleDateString('en-US', {
@@ -38,14 +69,14 @@ export const CourseEnrolledDetailModule = () => {
 
   // Handle refund request
   const handleRefund = () => {
-    // This is just a placeholder - will be implemented in future
-    console.log('Refund requested for course:', course.id);
+    setIsProcessingRefund(true);
     
-    // Close the dialog
-    setIsRefundDialogOpen(false);
+    // Create form data with action
+    const formData = new FormData();
+    formData.append('action', 'refund');
     
-    // You could show a toast notification here that refund is not yet implemented
-    alert("Refund request has been submitted. We'll process it shortly.");
+    // Submit the form to trigger the action
+    submit(formData, { method: 'post' });
   };
 
   return (
@@ -66,8 +97,8 @@ export const CourseEnrolledDetailModule = () => {
           <div className="rounded-xl bg-white shadow-md">
             {/* Course header */}
             <div className="relative overflow-hidden rounded-t-xl">
-              {/* Enhanced gradient header background */}
-              <div className="bg-gradient-to-r from-purple-700 via-blue-600 to-indigo-500 px-6 py-8 text-white shadow-lg">
+              {/* Gradient header background */}
+              <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-8 text-white">
                 <Badge className="bg-white/20 text-white mb-3 hover:bg-white/30">
                   Enrolled Course
                 </Badge>
@@ -194,13 +225,6 @@ export const CourseEnrolledDetailModule = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="py-4">
-                    <div className="rounded-md bg-amber-50 p-4 text-sm text-amber-800 mb-4">
-                      <p>Refund policy:</p>
-                      <ul className="list-disc ml-4 mt-1 space-y-1">
-                        <li>Full refund if requested within 30 days of purchase</li>
-                        <li>No refund if more than 50% of the course has been completed</li>
-                      </ul>
-                    </div>
                     <div className="font-medium">Course details:</div>
                     <div className="mt-1 text-sm text-gray-600">{course.name}</div>
                     <div className="mt-2 text-sm text-gray-500">Enrolled on: {formattedDate}</div>
@@ -209,14 +233,23 @@ export const CourseEnrolledDetailModule = () => {
                     <Button 
                       variant="ghost" 
                       onClick={() => setIsRefundDialogOpen(false)}
+                      disabled={isProcessingRefund}
                     >
                       Cancel
                     </Button>
                     <Button 
                       variant="destructive"
                       onClick={handleRefund}
+                      disabled={isProcessingRefund}
                     >
-                      Confirm Refund
+                      {isProcessingRefund ? (
+                        <>
+                          <span className="animate-spin mr-2">◌</span>
+                          Processing...
+                        </>
+                      ) : (
+                        'Confirm Refund'
+                      )}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
