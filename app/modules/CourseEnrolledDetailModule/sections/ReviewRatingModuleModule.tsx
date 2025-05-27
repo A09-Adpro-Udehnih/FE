@@ -2,29 +2,71 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLoaderData, useSearchParams, useRevalidator } from "react-router";
 import { format } from "date-fns";
 import { Button } from "~/components/ui/button";
-import { ChevronLeft, ChevronRight, Pencil, Trash2, Star } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Trash2,
+  Star,
+  X,
+} from "lucide-react";
 import type { CourseEnrolledDetailLoader } from "../loader";
 import { Textarea } from "~/components/ui/textarea";
 import { toast } from "sonner";
 
 const ITEMS_PER_PAGE = 10;
 
+interface ReviewFormData {
+  rating: number;
+  comment: string;
+}
+
 export const ReviewRatingModuleModule = () => {
-  const { reviews, userId } =
+  const { reviews, userId, course } =
     useLoaderData<typeof CourseEnrolledDetailLoader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const revalidator = useRevalidator();
   const currentPage = Number(searchParams.get("comments") || "0");
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
+  const [formData, setFormData] = useState<ReviewFormData>({
+    rating: 0,
+    comment: "",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+
+  useEffect(() => {
+    revalidator.revalidate();
+  }, [currentPage]);
 
   const handleEdit = (reviewId: string) => {
-    console.log("Edit review:", reviewId);
+    const review = reviews.find((r) => r.id === reviewId);
+    if (review) {
+      setEditingReviewId(reviewId);
+      setFormData({
+        rating: review.rating,
+        comment: review.comment,
+      });
+    }
   };
 
-  const handleDelete = (reviewId: string) => {
-    console.log("Delete review:", reviewId);
+  const handleCancelEdit = () => {
+    setEditingReviewId(null);
+    setFormData({ rating: 0, comment: "" });
+  };
+
+  const handleDelete = async (reviewId: string) => {
+    const response = await fetch("/api/delete/reviews", {
+      method: "DELETE",
+      body: JSON.stringify({ id: reviewId }),
+    });
+
+    if (response.status !== 200) {
+      toast.error("Failed to delete review");
+      return;
+    }
+
+    toast.success("Review deleted successfully");
+    revalidator.revalidate();
   };
 
   const handlePageChange = (newPage: number) => {
@@ -32,24 +74,54 @@ export const ReviewRatingModuleModule = () => {
   };
 
   const handleSubmitReview = async () => {
-    if (rating === 0) {
+    if (formData.rating === 0) {
       toast.error("Please select a rating");
       return;
     }
-    if (!comment.trim()) {
+    if (!formData.comment.trim()) {
       toast.error("Please enter a comment");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      console.log("Submitting review:", { rating, comment });
-      toast.success("Review submitted successfully");
-      setRating(0);
-      setComment("");
+      if (editingReviewId) {
+        const response = await fetch("/api/edit/reviews", {
+          method: "PUT",
+          body: JSON.stringify({ id: editingReviewId, ...formData }),
+        });
+
+        if (response.status !== 200) {
+          toast.error("Failed to update review");
+          setIsSubmitting(false);
+          return;
+        }
+        toast.success("Review updated successfully");
+      } else {
+        const response = await fetch("/api/create/reviews", {
+          method: "POST",
+          body: JSON.stringify({
+            rating: formData.rating,
+            comment: formData.comment,
+            userId,
+            courseId: course.id,
+          }),
+        });
+
+        if (response.status !== 200) {
+          toast.error("Failed to submit review");
+          setIsSubmitting(false);
+          return;
+        }
+        toast.success("Review submitted successfully");
+      }
+      setFormData({ rating: 0, comment: "" });
+      setEditingReviewId(null);
       revalidator.revalidate();
     } catch (error) {
-      toast.error("Failed to submit review");
+      toast.error(
+        editingReviewId ? "Failed to update review" : "Failed to submit review"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -97,6 +169,74 @@ export const ReviewRatingModuleModule = () => {
 
   const hasNextPage = reviews.length === ITEMS_PER_PAGE;
 
+  const renderReviewForm = (isEditing = false) => (
+    <div className="mb-8 bg-background border rounded-lg shadow-md p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">
+          {isEditing ? "Edit Review" : "Write a Review"}
+        </h2>
+        {isEditing && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCancelEdit}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">Rating</label>
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, rating: star }))
+                }
+                className="focus:outline-none"
+              >
+                <Star
+                  className={`w-8 h-8 ${
+                    star <= formData.rating
+                      ? "text-yellow-400 fill-yellow-400"
+                      : "text-gray-300"
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Comment</label>
+          <Textarea
+            value={formData.comment}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, comment: e.target.value }))
+            }
+            placeholder="Share your thoughts about this course..."
+            className="min-h-[100px]"
+          />
+        </div>
+        <Button
+          onClick={handleSubmitReview}
+          disabled={isSubmitting || revalidator.state === "loading"}
+        >
+          {isSubmitting
+            ? isEditing
+              ? "Updating..."
+              : "Submitting..."
+            : isEditing
+            ? "Update Review"
+            : "Submit Review"}
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <main className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
@@ -143,49 +283,9 @@ export const ReviewRatingModuleModule = () => {
         </div>
       </div>
 
-      {!hasUserReview && (
-        <div className="mb-8 bg-background border rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold mb-4">Write a Review</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Rating</label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    className="focus:outline-none"
-                  >
-                    <Star
-                      className={`w-8 h-8 ${
-                        star <= rating
-                          ? "text-yellow-400 fill-yellow-400"
-                          : "text-gray-300"
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Comment</label>
-              <Textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Share your thoughts about this course..."
-                className="min-h-[100px]"
-              />
-            </div>
-            <Button
-              onClick={handleSubmitReview}
-              disabled={isSubmitting || revalidator.state === "loading"}
-            >
-              {isSubmitting ? "Submitting..." : "Submit Review"}
-            </Button>
-          </div>
-        </div>
-      )}
+      {editingReviewId
+        ? renderReviewForm(true)
+        : !hasUserReview && renderReviewForm()}
 
       <div className="space-y-4">
         {revalidator.state === "loading" && (

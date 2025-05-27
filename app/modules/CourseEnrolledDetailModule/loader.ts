@@ -71,7 +71,5 @@ export async function CourseEnrolledDetailLoader({
     throw new Response("Enrolled course not found", { status: 404 });
   }
 
-  console.log(reviews);
-
   return { course: response.data, reviews: reviews.data, userId: user.userId };
 }
