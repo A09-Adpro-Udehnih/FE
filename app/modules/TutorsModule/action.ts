@@ -119,29 +119,6 @@ export async function TutorsAction({ request }: ActionFunctionArgs) {
       };
     }
   }
-
-  // Get course students
-  if (intent === "get-course-students") {
-    const courseId = formData.get("courseId");
-
-    if (!courseId) {
-      return {
-        success: false,
-        message: "Course ID is required",
-      };
-    }
-
-    try {
-      const response = await fetcher(`api/v1/course/courses/${courseId}/students`, request, true);
-      return response;
-    } catch (error) {
-      return {
-        success: false,
-        message: "Failed to get course students",
-      };
-    }
-  }
-
   return {
     success: false,
     message: "Invalid request",
