@@ -23,7 +23,7 @@ import { formatName } from "~/lib/utils";
 
 const Navbar = () => {
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const { isLoggedIn, username } = useLoaderData<typeof loader>();
+  const { isLoggedIn, username, role } = useLoaderData<typeof loader>();
   const logout = useLogout();
   const navigate = useNavigate();
 
@@ -50,6 +50,14 @@ const Navbar = () => {
               {item.label}
             </Link>
           ))}
+          {isLoggedIn && role === "STAFF" && (
+            <Link
+              to="/staffdashboard"
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
+              Staff Dashboard
+            </Link>
+          )}
         </div>
 
         {/* Right Section */}
@@ -116,6 +124,14 @@ const Navbar = () => {
                     {item.label}
                   </Link>
                 ))}
+                {isLoggedIn && role === "STAFF" && (
+                  <Link
+                    to="/staffdashboard"
+                    className="text-sm font-medium transition-colors hover:text-primary"
+                  >
+                    Staff Dashboard
+                  </Link>
+                )}
                 {!isLoggedIn && (
                   <Button onClick={handleLogin} className="w-full">
                     Login

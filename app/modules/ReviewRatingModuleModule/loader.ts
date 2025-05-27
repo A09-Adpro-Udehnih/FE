@@ -27,5 +27,7 @@ export async function ReviewRatingModuleLoader({
     true
   );
 
+  console.log(response);
+
   return response.data;
 }

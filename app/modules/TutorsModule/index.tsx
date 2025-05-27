@@ -200,7 +200,7 @@ export const TutorsModule = () => {
     
     try {
       console.log('Fetching students for course:', course.id);
-      const response = await fetch(`http://localhost/api/v1/course/courses/${course.id}/students`, {
+      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${course.id}/students`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -242,10 +242,10 @@ export const TutorsModule = () => {
       console.log('Loading course content for course:', {
         courseId: course.id,
         courseName: course.name,
-        endpoint: `http://localhost/api/v1/course/courses/${course.id}/sections`
+        endpoint: `https://api.udehnih.site/api/v1/course/courses/${course.id}/sections`
       });
       
-      const response = await fetch(`http://localhost/api/v1/course/courses/${course.id}/sections`, {
+      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${course.id}/sections`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -304,7 +304,7 @@ export const TutorsModule = () => {
     
     try {
       console.log('Refreshing course content for course:', currentCourseWithContent.id);
-      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent.id}/sections`, {
+      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent.id}/sections`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -345,10 +345,10 @@ export const TutorsModule = () => {
         title, 
         position, 
         courseId: currentCourseWithContent?.id,
-        endpoint: `http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections`
+        endpoint: `https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections`
       });
       
-      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections`, {
+      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -397,7 +397,7 @@ export const TutorsModule = () => {
     
     try {
       console.log('Updating section:', { id: currentSection?.id, title, position });
-      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}`, {
+      const response = await fetch(`${process.env.API_URL}api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -428,7 +428,7 @@ export const TutorsModule = () => {
   const handleDeleteSection = async (sectionId: string) => {
     try {
       console.log('Deleting section:', sectionId);
-      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${sectionId}`, {
+      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${sectionId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -460,7 +460,7 @@ export const TutorsModule = () => {
     
     try {
       console.log('Creating article:', { title, content, position, sectionId: currentSection?.id });
-      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}/articles`, {
+      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}/articles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -498,7 +498,7 @@ export const TutorsModule = () => {
     
     try {
       console.log('Updating article:', { id: currentArticle?.id, title, content, position });
-      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}/articles/${currentArticle?.id}`, {
+      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}/articles/${currentArticle?.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -531,7 +531,7 @@ export const TutorsModule = () => {
   const handleDeleteArticle = async (sectionId: string, articleId: string) => {
     try {
       console.log('Deleting article:', { sectionId, articleId });
-      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${sectionId}/articles/${articleId}`, {
+      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${sectionId}/articles/${articleId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
