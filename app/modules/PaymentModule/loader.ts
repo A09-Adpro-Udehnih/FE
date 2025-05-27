@@ -9,12 +9,12 @@ export async function PaymentLoader({ request }: LoaderFunctionArgs) {
   // Determine which endpoint to call based on query parameters
   let endpoint = '';
   if (paymentId) {
-    endpoint = `http://localhost:8083/api/payments/${paymentId}`;
+    endpoint = `${process.env.API_URL}api/payments/${paymentId}`;
   } else if (userId) {
-    endpoint = `http://localhost:8083/api/payments/user/${userId}`;
+    endpoint = `${process.env.API_URL}api/payments/user/${userId}`;
   } else {
     // Default: get pending payments for admin
-    endpoint = `http://localhost:8083/api/admin/payments/pending`;
+    endpoint = `${process.env.API_URL}api/admin/payments/pending`;
   }
 
   console.log("==> Payment Loader fetching from:", endpoint);

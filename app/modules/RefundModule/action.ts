@@ -38,7 +38,7 @@ export async function RefundAction({ request }: ActionFunctionArgs) {
     };
 
     const res = await fetch(
-      `http://localhost:8083/api/v1/payment/${paymentId}/refund`,
+      `${process.env.API_URL}api/v1/payment/${paymentId}/refund`,
       {
         method: "POST",
         headers: {

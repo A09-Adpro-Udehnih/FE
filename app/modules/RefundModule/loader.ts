@@ -19,7 +19,7 @@ export async function RefundLoader({ params, request }: LoaderFunctionArgs) {
 
   try {
     const token = await getSessionCookie(request);
-    const res = await fetch(`http://localhost:8083/api/v1/payment/${paymentId}`, {
+    const res = await fetch(`${process.env.API_URL}api/v1/payment/${paymentId}`, {
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

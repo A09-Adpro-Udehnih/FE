@@ -22,7 +22,7 @@ export async function PaymentAction({ request }: ActionFunctionArgs) {
           cardCvc: formData.get("cardCvc"),
         };
 
-        const res = await fetch("http://localhost:8080/api/payments", {
+        const res = await fetch(`${process.env.API_URL}api/payments`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -46,7 +46,7 @@ export async function PaymentAction({ request }: ActionFunctionArgs) {
         const status = formData.get("status") as string;
 
         const res = await fetch(
-          `http://localhost:8080/api/admin/payments/${paymentId}/status?status=${status}`,
+          `${process.env.API_URL}api/admin/payments/${paymentId}/status?status=${status}`,
           {
             method: "PUT",
             headers: {
@@ -71,7 +71,7 @@ export async function PaymentAction({ request }: ActionFunctionArgs) {
         const reason = formData.get("reason") as string;
 
         const res = await fetch(
-          `http://localhost:8080/api/payments/${paymentId}/refund`,
+          `${process.env.API_URL}api/payments/${paymentId}/refund`,
           {
             method: "POST",
             headers: {
