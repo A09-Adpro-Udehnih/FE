@@ -8,8 +8,8 @@ export const NAVIGATION_ITEMS = [
     href: "/courseBrowsing",
   },
   {
-    label: "Teachers",
-    href: "/teachers",
+    label: "Tutors",
+    href: "/tutors",
   },
   {
     label: "About",
