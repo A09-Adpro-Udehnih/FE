@@ -81,9 +81,7 @@ export const TutorsModule = () => {
     if (!tutorApplication) {
       navigate('/tutorRegistration');
       return;
-    }
-
-    if (tutorApplication.status !== 'ACCEPTED') {
+    }    if (tutorApplication.status !== 'ACCEPTED') {
       navigate('/tutorRegistration');
       return;
     }

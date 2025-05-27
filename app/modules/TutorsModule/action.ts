@@ -4,11 +4,10 @@ import { fetcher } from "~/lib/fetch.server";
 export async function TutorsAction({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const intent = formData.get("intent");
-
   // Submit tutor application
   if (intent === "apply") {
     try {
-      const response = await fetcher("tutors/registration", request, true, {
+      const response = await fetcher("api/v1/course/tutors/registration", request, true, {
         method: "POST",
       });
 
@@ -24,7 +23,7 @@ export async function TutorsAction({ request }: ActionFunctionArgs) {
   // Cancel tutor application
   if (intent === "cancel") {
     try {
-      const response = await fetcher("tutors/registration", request, true, {
+      const response = await fetcher("api/v1/course/tutors/registration", request, true, {
         method: "DELETE",
       });
 
@@ -48,10 +47,8 @@ export async function TutorsAction({ request }: ActionFunctionArgs) {
         success: false,
         message: "Missing required fields",
       };
-    }
-
-    try {
-      const response = await fetcher("courses", request, true, {
+    }    try {
+      const response = await fetcher("api/v1/course/courses", request, true, {
         method: "POST",
         body: JSON.stringify({
           name,
@@ -74,9 +71,7 @@ export async function TutorsAction({ request }: ActionFunctionArgs) {
     const courseId = formData.get("courseId");
     const name = formData.get("name");
     const description = formData.get("description");
-    const price = formData.get("price");
-
-    if (!courseId || !name || !description || !price) {
+    const price = formData.get("price");    if (!courseId || !name || !description || !price) {
       return {
         success: false,
         message: "Missing required fields",
@@ -84,7 +79,7 @@ export async function TutorsAction({ request }: ActionFunctionArgs) {
     }
 
     try {
-      const response = await fetcher(`courses/${courseId}`, request, true, {
+      const response = await fetcher(`api/v1/course/courses/${courseId}`, request, true, {
         method: "PUT",
         body: JSON.stringify({
           name,
@@ -111,10 +106,8 @@ export async function TutorsAction({ request }: ActionFunctionArgs) {
         success: false,
         message: "Course ID is required",
       };
-    }
-
-    try {
-      const response = await fetcher(`courses/${courseId}`, request, true, {
+    }    try {
+      const response = await fetcher(`api/v1/course/courses/${courseId}`, request, true, {
         method: "DELETE",
       });
 
@@ -139,7 +132,7 @@ export async function TutorsAction({ request }: ActionFunctionArgs) {
     }
 
     try {
-      const response = await fetcher(`courses/${courseId}/students`, request, true);
+      const response = await fetcher(`api/v1/course/courses/${courseId}/students`, request, true);
       return response;
     } catch (error) {
       return {

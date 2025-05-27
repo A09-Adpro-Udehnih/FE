@@ -1,4 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import { fetcher } from "~/lib/fetch.server";
 
 export type TutorApplication = {
@@ -30,9 +31,13 @@ export async function TutorRegistrationLoader({ request }: LoaderFunctionArgs) {
     // The fetcher casts this as GeneralResponse<T>, but the actual structure is flat
     const status = (response as any)?.status || null;
     const tutorApplicationId = (response as any)?.tutorApplicationId || null;
-    
-    console.log("Parsed status:", status);
+      console.log("Parsed status:", status);
     console.log("Parsed tutorApplicationId:", tutorApplicationId);
+      // If the user is accepted, redirect to tutor dashboard
+    if (status === "ACCEPTED") {
+      console.log("Redirecting user to tutor dashboard...");
+      throw redirect("/tutors");
+    }
     
     // Determine application state based on response structure
     const hasTutorAppId = !!tutorApplicationId;
@@ -57,8 +62,12 @@ export async function TutorRegistrationLoader({ request }: LoaderFunctionArgs) {
         isDeletedOrDenied: isDeletedOrDenied,
         isPending: isPending
       }
-    };
-  } catch (error) {
+    };  } catch (error) {
+    // If it's a redirect response, let it bubble up to the router
+    if (error instanceof Response && error.status === 302) {
+      throw error;
+    }
+    
     console.error("Error loading tutor registration status:", error);
     return { 
       success: false, 

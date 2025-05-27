@@ -21,20 +21,24 @@ export async function TutorsLoader({ request }: LoaderFunctionArgs) {
     };
   }
 
-  try {
-    // Check if user has a tutor application
+  try {    // Check if user has a tutor application
     let applicationResponse;
-    try {
-      const response = await fetcher<{
+    try {      const response = await fetcher<{
         status: string;
         tutorApplicationId?: string; 
-      }>("/tutors/registration", request, true);
+      }>("api/v1/course/tutors/registration", request, true);
+        // The API returns { status, tutorApplicationId } directly, not wrapped in a data property
+      const status = (response as any)?.status || null;
+      const tutorApplicationId = (response as any)?.tutorApplicationId || null;
+      
+      console.log("TutorsLoader: parsed status =", status);
+      console.log("TutorsLoader: parsed tutorApplicationId =", tutorApplicationId);
       
       applicationResponse = {
         success: response.success,
         data: {
-          id: response.data?.tutorApplicationId || "",
-          status: response.data?.status || null,
+          id: tutorApplicationId || "",
+          status: status,
           studentId: user.userId || user.sub || "",
           createdAt: new Date().toISOString()
         },
@@ -50,13 +54,16 @@ export async function TutorsLoader({ request }: LoaderFunctionArgs) {
     const isTeacher = user.role === "tutor" || user.role === "TUTOR";
     const isAcceptedTutor = applicationResponse.success && applicationResponse.data?.status === "ACCEPTED";
     
-    if (isTeacher || isAcceptedTutor) {
-      try {
-        const response = await fetcher<{ courses: any[] }>("/courses/mine", request, true);
+    if (isTeacher || isAcceptedTutor) {      try {
+        const response = await fetcher<{ courses: any[] }>("api/v1/course/courses/mine", request, true);
+        
+        // The API returns courses directly, not wrapped in a data property
+        const courses = (response as any)?.courses || [];
+        console.log("TutorsLoader: fetched courses =", courses);
         
         coursesResponse = {
           success: response.success,
-          courses: response.data?.courses || [],
+          courses: courses,
           message: response.message
         };
       } catch (error) {

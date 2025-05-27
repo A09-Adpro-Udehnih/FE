@@ -10,12 +10,11 @@ export async function TutorRegistrationAction({ request }: ActionFunctionArgs) {
   // Submit tutor application
   if (intent === "apply") {
     try {
-      console.log("Sending tutor application request...");
-      const response = await fetcher<{
+      console.log("Sending tutor application request...");      const response = await fetcher<{
         status: string | null;
         tutorApplicationId?: string;
       }>(
-        "/api/v1/course/tutors/registration",
+        "api/v1/course/tutors/registration",
         request, 
         true,
         { method: "POST" }
@@ -38,12 +37,11 @@ export async function TutorRegistrationAction({ request }: ActionFunctionArgs) {
   // Cancel tutor application
   if (intent === "cancel") {
     try {
-      console.log("Sending cancel tutor application request...");
-      const response = await fetcher<{
+      console.log("Sending cancel tutor application request...");      const response = await fetcher<{
         status?: string | null;
         tutorApplicationId?: string;
       }>(
-        "/api/v1/course/tutors/registration", 
+        "api/v1/course/tutors/registration", 
         request, 
         true,
         { method: "DELETE" }

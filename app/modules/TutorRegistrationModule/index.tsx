@@ -54,7 +54,6 @@ export const TutorRegistrationModule = () => {
       return () => clearTimeout(timer);
     }
   }, [fetcher.state, fetcher.data, navigate]);
-
   const handleSubmitApplication = () => {
     console.log("Submitting tutor application...");
     // Creating a FormData object for better compatibility
@@ -63,10 +62,9 @@ export const TutorRegistrationModule = () => {
     
     fetcher.submit(
       formData,
-      { method: 'post', action: '/tutorRegistration' }
+      { method: 'post' }
     );
   };
-
   const handleCancelApplication = () => {
     console.log("Cancelling tutor application...");
     // Creating a FormData object for better compatibility
@@ -75,7 +73,7 @@ export const TutorRegistrationModule = () => {
     
     fetcher.submit(
       formData,
-      { method: 'post', action: '/tutorRegistration' }
+      { method: 'post' }
     );
   };
 
