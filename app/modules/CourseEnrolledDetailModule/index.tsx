@@ -10,7 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "~/
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
 
 export const CourseEnrolledDetailModule = () => {
-  const course = useLoaderData<typeof CourseEnrolledDetailLoader>();
+  const { course } = useLoaderData<typeof CourseEnrolledDetailLoader>();
   const navigate = useNavigate();
   const [isRefundDialogOpen, setIsRefundDialogOpen] = React.useState(false);
   const [selectedArticle, setSelectedArticle] = React.useState<{id: string; title: string; content: string} | null>(null);
@@ -63,7 +63,7 @@ export const CourseEnrolledDetailModule = () => {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {/* Main content */}
         <div className="md:col-span-2">
-          <div className="rounded-xl bg-white shadow-md">
+          <div className="rounded-xl bg-background dark:border-1 shadow-md">
             {/* Course header */}
             <div className="relative overflow-hidden rounded-t-xl">
               {/* Enhanced gradient header background */}
@@ -83,7 +83,7 @@ export const CourseEnrolledDetailModule = () => {
             <div className="p-6">
               <div className="mb-6">
                 <h2 className="mb-2 text-lg font-semibold">About This Course</h2>
-                <p className="text-gray-600">{course.description}</p>
+                <p className="text-gray-600 dark:text-gray-400">{course.description}</p>
               </div>
 
               <Separator className="my-6" />
@@ -154,7 +154,7 @@ export const CourseEnrolledDetailModule = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center gap-3 bg-blue-50 p-3 rounded-lg">
+                <div className="flex items-center gap-3 bg-blue-50 dark:bg-background/80 p-3 rounded-lg">
                   <Calendar className="h-5 w-5 text-blue-600" />
                   <div>
                     <div className="text-sm font-medium">Enrolled on</div>
@@ -162,7 +162,7 @@ export const CourseEnrolledDetailModule = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3 bg-blue-50 p-3 rounded-lg">
+                <div className="flex items-center gap-3 bg-blue-50 dark:bg-background/80 p-3 rounded-lg">
                   <BookOpen className="h-5 w-5 text-blue-600" />
                   <div>
                     <div className="text-sm font-medium">Course Material</div>

@@ -23,9 +23,23 @@ interface CourseEnrolledDetailResponse {
   sections: Section[];
 }
 
-const COURSE_ENROLLED_DETAIL_URL = "api/v1/course/courses/my-courses";
+interface CourseReviewResponse {
+  id: string;
+  course: string;
+  userId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  updateAt: string;
+}
 
-export async function CourseEnrolledDetailLoader({ request, params }: LoaderFunctionArgs) {
+const COURSE_ENROLLED_DETAIL_URL = "api/v1/course/courses/my-courses";
+const COURSE_REVIEW_URL = "api/v1/course/reviews/course";
+
+export async function CourseEnrolledDetailLoader({
+  request,
+  params,
+}: LoaderFunctionArgs) {
   const user = await getUserFromRequest(request);
   if (!user) {
     return redirect("/login");
@@ -37,17 +51,27 @@ export async function CourseEnrolledDetailLoader({ request, params }: LoaderFunc
   }
 
   const searchParams = new URLSearchParams();
-  searchParams.append('userId', user.userId);
+  searchParams.append("userId", user.userId);
 
   const searchParamsString = searchParams.toString();
   const response = await fetcher<CourseEnrolledDetailResponse>(
     `${COURSE_ENROLLED_DETAIL_URL}/${courseId}?${searchParamsString}`,
     request
   );
-  
+
+  const url = new URL(request.url);
+  const commentPage = Number(url.searchParams.get("comments") || "0");
+
+  const reviews = await fetcher<CourseReviewResponse[]>(
+    `${COURSE_REVIEW_URL}/${courseId}?page=${commentPage}`,
+    request
+  );
+
   if (!response.data) {
     throw new Response("Enrolled course not found", { status: 404 });
   }
-  
-  return response.data;
+
+  console.log(reviews);
+
+  return { course: response.data, reviews: reviews.data, userId: user.userId };
 }
