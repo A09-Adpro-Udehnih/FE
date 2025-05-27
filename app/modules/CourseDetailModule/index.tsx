@@ -1,6 +1,6 @@
 import React from 'react'
 import { useLoaderData, useNavigate } from 'react-router'
-import { BookOpen, User, CheckCircle, ArrowLeft, Clock, Coins } from "lucide-react"
+import { BookOpen, User, ArrowLeft, DollarSign, CheckCircle, ShoppingCart, LockIcon } from "lucide-react"
 import type { CourseDetailLoader } from './loader'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
@@ -12,9 +12,18 @@ export const CourseDetailModule = () => {
   const course = useLoaderData<typeof CourseDetailLoader>();
   const navigate = useNavigate();
 
-  // Go back to courses page
+  // Go back to course browse page
   const handleBack = () => {
     navigate(-1);
+  };
+
+  // Placeholder for enrollment function
+  const handleEnroll = () => {
+    // This is just a placeholder - will be implemented in future
+    console.log('Enrollment requested for course:', course.id);
+    
+    // You could show a toast notification here that enrollment is not yet implemented
+    alert("Enrollment functionality will be implemented soon!");
   };
 
   return (
@@ -37,6 +46,13 @@ export const CourseDetailModule = () => {
             <div className="relative overflow-hidden rounded-t-xl">
               {/* Gradient header background */}
               <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-8 text-white">
+                <Badge className={`mb-3 ${
+                  course.price === 0
+                    ? "bg-green-500/20 text-white hover:bg-green-500/30"
+                    : "bg-purple-500/20 text-white hover:bg-purple-500/30"
+                }`}>
+                  {course.price === 0 ? "Free Course" : "Premium Course"}
+                </Badge>
                 <h1 className="text-2xl font-bold md:text-3xl">{course.name}</h1>
                 <div className="mt-2 flex items-center gap-2">
                   <User className="h-4 w-4" />
@@ -61,7 +77,7 @@ export const CourseDetailModule = () => {
                   Course Content
                 </h2>
                 <div className="text-sm text-muted-foreground">
-                  <span>{course.sections.length} sections</span>
+                  <span>{course.sections.length} sections available</span>
                 </div>
 
                 <Accordion type="single" collapsible className="mt-4">
@@ -75,10 +91,13 @@ export const CourseDetailModule = () => {
                           <span>{section.title}</span>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent className="px-4 py-2 text-muted-foreground">
-                        <div className="flex items-center gap-2 py-1 text-sm">
-                          <Clock className="h-4 w-4" />
-                          <span>Section content will be available after enrollment</span>
+                      <AccordionContent className="px-4 py-2 border-l-2 border-purple-100 ml-5">
+                        <div className="py-3 text-sm bg-purple-50/50 rounded-md p-3 text-center">
+                          <div className="flex justify-center mb-2">
+                            <LockIcon className="h-5 w-5 text-purple-400" />
+                          </div>
+                          <p className="text-purple-600 font-medium mb-1">Content available after enrollment</p>
+                          <p className="text-gray-600">Enroll now to access all course materials</p>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -89,54 +108,78 @@ export const CourseDetailModule = () => {
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar - Enrollment and Price */}
         <div>
-          <Card className="sticky top-6">
+          <Card className="sticky top-6 border-purple-100">
             <CardHeader className="pb-3">
-              <CardTitle>Enroll in this course</CardTitle>
-              <CardDescription>Access this course and start learning today</CardDescription>
+              <CardTitle>Course Enrollment</CardTitle>
+              <CardDescription>
+                {course.price === 0 
+                  ? "Enroll for free today" 
+                  : "Unlock premium course content"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-4">
-                <div className="mb-4 flex items-center gap-2">
-                  <Coins className={course.price === 0 
-                    ? "text-green-600 h-5 w-5" 
-                    : "text-purple-600 h-5 w-5"
-                  } />
-                  <span className="text-2xl font-bold">
+              <div className="space-y-4">
+                <div className={`text-center p-6 rounded-lg ${
+                  course.price === 0
+                    ? "bg-green-50 text-green-700"
+                    : "bg-purple-50 text-purple-700"
+                }`}>
+                  <div className="font-bold text-2xl mb-1">
                     {course.price === 0 
-                      ? 'Free' 
-                      : `Rp${course.price.toLocaleString('id-ID')}`
-                    }
-                  </span>
+                      ? "FREE" 
+                      : `Rp${course.price.toLocaleString('id-ID')}`}
+                  </div>
+                  <div className="text-sm opacity-80">
+                    {course.price === 0 
+                      ? "No payment required" 
+                      : "One-time payment"}
+                  </div>
                 </div>
                 
-                <Badge className={course.price === 0 
-                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" 
-                  : "bg-gradient-to-r from-purple-500 to-indigo-600 text-white"
-                }>
-                  {course.price === 0 ? 'Free Course' : 'Premium Course'}
-                </Badge>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="mt-0.5 h-4 w-4 text-green-600" />
-                  <span className="text-sm">Full access to course materials</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="mt-0.5 h-4 w-4 text-green-600" />
-                  <span className="text-sm">Certificate upon completion</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="mt-0.5 h-4 w-4 text-green-600" />
-                  <span className="text-sm">Lifetime access</span>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-4 w-4 text-purple-600" />
+                    <span className="text-sm">Access to all course materials</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-4 w-4 text-purple-600" />
+                    <span className="text-sm">{course.sections.length} sections covering all topics</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-4 w-4 text-purple-600" />
+                    <span className="text-sm">Learn from expert instructors</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-4 w-4 text-purple-600" />
+                    <span className="text-sm">Lifetime access to content</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700">
-                Enroll Now
+              <Button 
+                onClick={handleEnroll}
+                className={`w-full ${
+                  course.price === 0
+                    ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                    : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                } text-white`}
+              >
+                <div className="flex items-center gap-2">
+                  {course.price === 0 ? (
+                    <>
+                      <BookOpen className="h-4 w-4" />
+                      Enroll Now - Free
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-4 w-4" />
+                      Buy Now
+                    </>
+                  )}
+                </div>
               </Button>
             </CardFooter>
           </Card>
@@ -144,4 +187,4 @@ export const CourseDetailModule = () => {
       </div>
     </main>
   );
-}
+};

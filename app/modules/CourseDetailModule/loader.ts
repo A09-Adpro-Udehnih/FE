@@ -15,6 +15,7 @@ interface CourseDetailResponse {
   tutor: string;
   price: number;
   sections: Section[];
+  enrolled: boolean;
 }
 
 const COURSE_DETAIL_URL = "api/v1/course/courses";
@@ -30,8 +31,12 @@ export async function CourseDetailLoader({ request, params }: LoaderFunctionArgs
     throw new Response("Course ID is required", { status: 400 });
   }
 
+  const searchParams = new URLSearchParams();
+  searchParams.append('userId', user.userId);
+
+  const searchParamsString = searchParams.toString();
   const response = await fetcher<CourseDetailResponse>(
-    `${COURSE_DETAIL_URL}/${courseId}`,
+    `${COURSE_DETAIL_URL}/${courseId}?${searchParamsString}`,
     request
   );
   
