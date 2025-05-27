@@ -71,7 +71,13 @@ const Navbar = () => {
                   />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="z-50">
+              <PopoverContent className="z-50 flex flex-col gap-4">
+                <Link to="/profile">
+                  <button className="flex items-center gap-2 cursor-pointer">
+                    <User />
+                    Profile
+                  </button>
+                </Link>
                 <Button
                   onClick={logout}
                   className="w-full"
