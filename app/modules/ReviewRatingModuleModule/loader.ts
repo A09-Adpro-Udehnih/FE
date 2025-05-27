@@ -2,7 +2,7 @@ import { redirect, type LoaderFunctionArgs } from "react-router";
 import { getUserFromRequest } from "~/lib/auth.server";
 import { fetcher } from "~/lib/fetch.server";
 
-type ReviewRatingModuleLoaderResponse = {
+export type ReviewRatingModuleLoaderResponse = {
   id: string;
   courseId: string;
   userId: string;

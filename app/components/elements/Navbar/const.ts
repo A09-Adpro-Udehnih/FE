@@ -15,4 +15,8 @@ export const NAVIGATION_ITEMS = [
     label: "My Courses",
     href: "/courseEnrolledBrowsing",
   },
+  {
+    label: "My Reviews",
+    href: "/reviews",
+  },
 ] as const;
