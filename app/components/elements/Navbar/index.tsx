@@ -59,16 +59,15 @@ const Navbar = () => {
           {isLoggedIn ? (
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
-                <button className="w-[100px] cursor-pointer group flex gap-3 max-sm:gap-2 py-2 items-center text-black dark:text-white fill-black dark:fill-white group">
-                  <User size="w-5 h-5" />
+                <button className="w-fit cursor-pointer group flex gap-3 max-sm:gap-2 py-2 items-center text-black dark:text-white fill-black dark:fill-white group">
+                  <User className="w-5 h-5 min-w-5 min-h-5" />
                   <p className="font-bold text-base max-md:hidden">
                     {formatName(username ?? "")}
                   </p>
                   <ChevronDown
                     className={`${
                       popoverOpen ? "-rotate-180" : ""
-                    } duration-300 text-black dark:text-white`}
-                    size="w-5 h-5"
+                    } duration-300 text-black dark:text-white w-5 h-5 min-w-5 min-h-5`}
                   />
                 </button>
               </PopoverTrigger>
