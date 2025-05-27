@@ -5,7 +5,7 @@ export const NAVIGATION_ITEMS = [
   },
   {
     label: "Courses",
-    href: "/courses",
+    href: "/courseBrowsing",
   },
   {
     label: "Teachers",
@@ -18,5 +18,9 @@ export const NAVIGATION_ITEMS = [
   {
     label: "Contact",
     href: "/contact",
+  },
+  {
+    label: "My Courses",
+    href: "/courseEnrolledBrowsing",
   },
 ] as const;
