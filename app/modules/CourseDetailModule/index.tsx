@@ -1,6 +1,7 @@
 import React from 'react'
-import { useLoaderData, useNavigate } from 'react-router'
-import { BookOpen, User, ArrowLeft, DollarSign, CheckCircle, ShoppingCart, LockIcon } from "lucide-react"
+import { useLoaderData, useNavigate, useSubmit, useActionData } from 'react-router'
+import { BookOpen, User, ArrowLeft, DollarSign, LockIcon, CheckCircle } from "lucide-react"
+import { toast, Toaster } from "sonner"
 import type { CourseDetailLoader } from './loader'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
@@ -11,19 +12,50 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "~/
 export const CourseDetailModule = () => {
   const course = useLoaderData<typeof CourseDetailLoader>();
   const navigate = useNavigate();
+  const submit = useSubmit();
+  const actionData = useActionData();
+  const [isEnrolling, setIsEnrolling] = React.useState(false);
+  
+  // Handle action data updates
+  React.useEffect(() => {
+    if (actionData) {
+      if (actionData.success) {
+        toast.success(actionData.message, {
+          description: "You now have access to this course."
+        });
+        
+        // Redirect if provided
+        if (actionData.redirectTo) {
+          setTimeout(() => {
+            navigate(actionData.redirectTo);
+          }, 1000); // Short delay to show the toast
+        }
+      } else if (actionData.message) {
+        toast.error("Enrollment Failed", {
+          description: actionData.message
+        });
+      }
+      
+      // Reset enrolling state
+      setIsEnrolling(false);
+    }
+  }, [actionData, navigate]);
 
   // Go back to course browse page
   const handleBack = () => {
     navigate(-1);
   };
 
-  // Placeholder for enrollment function
+  // Handle enrollment
   const handleEnroll = () => {
-    // This is just a placeholder - will be implemented in future
-    console.log('Enrollment requested for course:', course.id);
+    setIsEnrolling(true);
     
-    // You could show a toast notification here that enrollment is not yet implemented
-    alert("Enrollment functionality will be implemented soon!");
+    // Create form data with action
+    const formData = new FormData();
+    formData.append('action', 'enroll');
+    
+    // Submit the form to trigger the action
+    submit(formData, { method: 'post' });
   };
 
   return (
@@ -161,25 +193,23 @@ export const CourseDetailModule = () => {
             <CardFooter>
               <Button 
                 onClick={handleEnroll}
+                disabled={isEnrolling}
                 className={`w-full ${
                   course.price === 0
                     ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
                     : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
                 } text-white`}
               >
-                <div className="flex items-center gap-2">
-                  {course.price === 0 ? (
-                    <>
-                      <BookOpen className="h-4 w-4" />
-                      Enroll Now - Free
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="h-4 w-4" />
-                      Buy Now
-                    </>
-                  )}
-                </div>
+                {isEnrolling ? (
+                  <>
+                    <span className="animate-spin mr-2">◌</span>
+                    Enrolling...
+                  </>
+                ) : (
+                  <>
+                    {course.price === 0 ? 'Enroll Now - Free' : 'Buy Now'}
+                  </>
+                )}
               </Button>
             </CardFooter>
           </Card>
