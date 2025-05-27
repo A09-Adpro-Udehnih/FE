@@ -47,7 +47,7 @@ export async function TutorsLoader({ request }: LoaderFunctionArgs) {
     
     // If user is a tutor, fetch their courses
     let coursesResponse = null;
-    const isTeacher = user.role === "teacher" || user.role === "TEACHER";
+    const isTeacher = user.role === "tutor" || user.role === "TUTOR";
     const isAcceptedTutor = applicationResponse.success && applicationResponse.data?.status === "ACCEPTED";
     
     if (isTeacher || isAcceptedTutor) {

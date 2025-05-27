@@ -15,7 +15,7 @@ export async function TutorRegistrationAction({ request }: ActionFunctionArgs) {
         status: string | null;
         tutorApplicationId?: string;
       }>(
-        "/tutors/registration",
+        "/api/v1/course/tutors/registration",
         request, 
         true,
         { method: "POST" }
@@ -38,16 +38,18 @@ export async function TutorRegistrationAction({ request }: ActionFunctionArgs) {
   // Cancel tutor application
   if (intent === "cancel") {
     try {
+      console.log("Sending cancel tutor application request...");
       const response = await fetcher<{
         status?: string | null;
         tutorApplicationId?: string;
       }>(
-        "/tutors/registration", 
+        "/api/v1/course/tutors/registration", 
         request, 
         true,
         { method: "DELETE" }
       );
 
+      console.log("Cancel response:", response);
       return response;
     } catch (error) {
       console.error("Error cancelling tutor application:", error);
