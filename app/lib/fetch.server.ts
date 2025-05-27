@@ -13,9 +13,13 @@ export const fetcher = async <T>(
   request: Request,
   authenticated: boolean = true,
   options?: RequestInit
-) => {
+) => {  
+
   const token = await getSessionCookie(request);
-  const response = await fetch(`${process.env.API_URL}${url}`, {
+  const apiUrl = process.env.API_URL || 'http://localhost:8080';
+  const fullUrl = `${apiUrl}${url}`;
+  
+  const response = await fetch(fullUrl, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -34,5 +38,43 @@ export const fetcher = async <T>(
     } as GeneralResponse<T>;
   }
 
-  return response.json() as Promise<GeneralResponse<T>>;
+  // Safely handle the response text and JSON parsing
+  try {
+    const text = await response.text();
+
+    // Handle empty response
+    if (!text || text.trim() === "") {
+      return {
+        success: true,
+        code: 204,
+        error: null,
+        message: "No content",
+        data: null as unknown as T,
+      } as GeneralResponse<T>;
+    }
+
+    // Parse JSON with error handling
+    try {
+      const data = JSON.parse(text);
+      return data as GeneralResponse<T>;
+    } catch (jsonError) {
+      console.error("JSON parsing error:", jsonError, "Raw response:", text);
+      return {
+        success: false,
+        code: 500,
+        error: "Invalid JSON response",
+        message: "The server returned invalid JSON data",
+        data: null as unknown as T,
+      } as GeneralResponse<T>;
+    }
+  } catch (error) {
+    console.error("Error handling response:", error);
+    return {
+      success: false,
+      code: 500,
+      error: "Failed to process response",
+      message: "An error occurred while processing the server response",
+      data: null as unknown as T,
+    } as GeneralResponse<T>;
+  }
 };

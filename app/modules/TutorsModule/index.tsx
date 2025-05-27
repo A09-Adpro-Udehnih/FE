@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { useFetcher, useLoaderData } from "react-router";
-import type { TutorsAction } from "./action";
+import { useState, useEffect } from "react";
+import { useFetcher, useLoaderData, useNavigate, Link } from "react-router";
 import type { TutorApplication } from "./loader";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -43,6 +42,10 @@ import {
   Trash2,
   Users,
   GraduationCap,
+  BookOpen,
+  FileText,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import {
@@ -51,19 +54,44 @@ import {
   TabsList,
   TabsTrigger,
 } from "~/components/ui/tabs";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "~/components/ui/collapsible";
 
-// Define types for course data
+// Define types for course data with sections and articles
+interface Article {
+  id: string;
+  title: string;
+  content: string;
+  position: number;
+  sectionId: string;
+  createdAt: string;
+}
+
+interface Section {
+  id: string;
+  title: string;
+  position: number;
+  courseId: string;
+  articles: Article[];
+  createdAt: string;
+}
+
 interface Course {
   id: string;
   name: string;
   description: string;
   price: number;
   tutorId: string;
+  sections?: Section[];
   createdAt: string;
 }
 
 export const TutorsModule = () => {
-  const fetcher = useFetcher<typeof TutorsAction>();
+  const navigate = useNavigate();
+  const fetcher = useFetcher();
   const { user, tutorApplication, userCourses, error } = useLoaderData<{
     user: any;
     tutorApplication: TutorApplication | null;
@@ -71,12 +99,43 @@ export const TutorsModule = () => {
     error: string | null;
   }>();
 
+  // Redirect based on tutor application status
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (!tutorApplication) {
+      navigate('/tutorRegistration');
+      return;
+    }    if (tutorApplication.status !== 'ACCEPTED') {
+      navigate('/tutorRegistration');
+      return;
+    }
+  }, [user, tutorApplication, navigate]);
+
+  // If not an accepted tutor, don't render the tutors module content
+  if (!user || !tutorApplication || tutorApplication.status !== 'ACCEPTED') {
+    return <div className="container py-10 text-center">Redirecting...</div>;
+  }
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isStudentsDialogOpen, setIsStudentsDialogOpen] = useState(false);
+  const [isManageContentDialogOpen, setIsManageContentDialogOpen] = useState(false);
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
+  const [currentCourseWithContent, setCurrentCourseWithContent] = useState<Course | null>(null);
   const [courseStudents, setCourseStudents] = useState<string[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+  const [isCreateSectionDialogOpen, setIsCreateSectionDialogOpen] = useState(false);
+  const [isEditSectionDialogOpen, setIsEditSectionDialogOpen] = useState(false);
+  const [currentSection, setCurrentSection] = useState<Section | null>(null);
+  const [isCreateArticleDialogOpen, setIsCreateArticleDialogOpen] = useState(false);
+  const [isEditArticleDialogOpen, setIsEditArticleDialogOpen] = useState(false);
+  const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const handleSubmitApplication = () => {
     fetcher.submit(
@@ -134,34 +193,375 @@ export const TutorsModule = () => {
     });
     
     toast.success("Course deleted successfully");
-  };
-
-  const handleViewStudents = async (course: Course) => {
+  };  const handleViewStudents = async (course: Course) => {
     setCurrentCourse(course);
     setIsStudentsDialogOpen(true);
     setIsLoadingStudents(true);
     
-    const formData = new FormData();
-    formData.append("intent", "get-course-students");
-    formData.append("courseId", course.id);
-    
     try {
-      const response = await fetch("/tutors", {
-        method: "POST",
-        body: formData,
+      console.log('Fetching students for course:', course.id);
+      const response = await fetch(`http://localhost/api/v1/course/courses/${course.id}/students`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Include cookies for authentication
       });
       
-      const data = await response.json();
-      if (data.success) {
-        setCourseStudents(data.students || []);
+      console.log('Students API response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Students API response data:', data);
+        
+        // Handle both possible response structures
+        const students = data.students || data.data?.students || data || [];
+        setCourseStudents(students);
+        
+        if (students.length === 0) {
+          toast.info("No students enrolled in this course yet");
+        }
       } else {
-        toast.error("Failed to load students");
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Students API error:', errorData);
+        toast.error(errorData.message || "Failed to load students");
+        setCourseStudents([]);
       }
     } catch (error) {
+      console.error("Error fetching students:", error);
       toast.error("Failed to load students");
+      setCourseStudents([]);
     } finally {
       setIsLoadingStudents(false);
     }
+  };  const handleManageContent = async (course: Course) => {
+    setCurrentCourseWithContent(course);
+    setIsManageContentDialogOpen(true);
+    
+    try {
+      console.log('Loading course content for course:', {
+        courseId: course.id,
+        courseName: course.name,
+        endpoint: `http://localhost/api/v1/course/courses/${course.id}/sections`
+      });
+      
+      const response = await fetch(`http://localhost/api/v1/course/courses/${course.id}/sections`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      
+      console.log('Sections API response status:', response.status);
+      console.log('Sections API response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Sections API response data:', data);
+        
+        // Handle different possible response structures
+        const sections = data.sections || data.data?.sections || data || [];
+        setSections(sections);
+        
+        // Set initial expanded state for sections that have articles
+        const expandedSet = new Set<string>();
+        sections.forEach((section: Section) => {
+          if (section.articles && section.articles.length > 0) {
+            expandedSet.add(section.id);
+          }
+        });
+        setExpandedSections(expandedSet);
+        
+        if (sections.length === 0) {
+          toast.info("This course has no sections yet. Create your first section to add content.");
+        }
+      } else {
+        // Get the response text first to see what we're dealing with
+        const responseText = await response.text();
+        console.error('Sections API failed - Status:', response.status);
+        console.error('Sections API failed - Response text:', responseText);
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          console.error('Sections API error (parsed):', errorData);
+          toast.error(errorData.message || `Failed to load course content (${response.status})`);
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+          toast.error(`Failed to load course content (${response.status}): ${responseText || 'Unknown error'}`);
+        }
+        setSections([]);
+      }
+    } catch (error) {
+      console.error("Network error fetching course content:", error);
+      toast.error("Network error: Failed to load course content");
+      setSections([]);
+    }
+  };
+  // Utility function to refresh course content
+  const refreshCourseContent = async () => {
+    if (!currentCourseWithContent) return;
+    
+    try {
+      console.log('Refreshing course content for course:', currentCourseWithContent.id);
+      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent.id}/sections`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Refreshed sections data:', data);
+        
+        const sections = data.sections || data.data?.sections || data || [];
+        setSections(sections);
+        
+        // Maintain expanded state for sections with articles
+        const expandedSet = new Set(expandedSections);
+        sections.forEach((section: Section) => {
+          if (section.articles && section.articles.length > 0) {
+            expandedSet.add(section.id);
+          }
+        });
+        setExpandedSections(expandedSet);
+      } else {
+        console.error('Failed to refresh course content');
+      }
+    } catch (error) {
+      console.error("Error refreshing course content:", error);
+    }
+  };
+  const handleCreateSection = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const title = formData.get("title") as string;
+    const position = formData.get("position") as string;
+    
+    try {
+      console.log('Creating section:', { 
+        title, 
+        position, 
+        courseId: currentCourseWithContent?.id,
+        endpoint: `http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections`
+      });
+      
+      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          title,
+          position: position ? parseInt(position) : null,
+        }),
+      });
+      
+      console.log('Section creation response status:', response.status);
+      console.log('Section creation response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Section created successfully:', result);
+        toast.success("Section created successfully");
+        setIsCreateSectionDialogOpen(false);
+        await refreshCourseContent(); // Use the new refresh function
+      } else {
+        // Get the response text first to see what we're dealing with
+        const responseText = await response.text();
+        console.error('Section creation failed - Status:', response.status);
+        console.error('Section creation failed - Response text:', responseText);
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          console.error('Section creation error (parsed):', errorData);
+          toast.error(errorData.message || `Failed to create section (${response.status})`);
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+          toast.error(`Failed to create section (${response.status}): ${responseText || 'Unknown error'}`);
+        }
+      }
+    } catch (error) {
+      console.error("Network error creating section:", error);
+      toast.error("Network error: Failed to create section");
+    }
+  };
+  const handleUpdateSection = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const title = formData.get("title") as string;
+    const position = formData.get("position") as string;
+    
+    try {
+      console.log('Updating section:', { id: currentSection?.id, title, position });
+      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          title,
+          position: position ? parseInt(position) : null,
+        }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Section updated successfully:', result);
+        toast.success("Section updated successfully");
+        setIsEditSectionDialogOpen(false);
+        await refreshCourseContent(); // Use the new refresh function
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Section update error:', errorData);
+        toast.error(errorData.message || "Failed to update section");
+      }
+    } catch (error) {
+      console.error("Error updating section:", error);
+      toast.error("Failed to update section");
+    }
+  };
+  const handleDeleteSection = async (sectionId: string) => {
+    try {
+      console.log('Deleting section:', sectionId);
+      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${sectionId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        console.log('Section deleted successfully');
+        toast.success("Section deleted successfully");
+        await refreshCourseContent();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Section deletion error:', errorData);
+        toast.error(errorData.message || "Failed to delete section");
+      }
+    } catch (error) {
+      console.error("Error deleting section:", error);
+      toast.error("Failed to delete section");
+    }
+  };
+
+  const handleCreateArticle = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const title = formData.get("title") as string;
+    const content = formData.get("content") as string;
+    const position = formData.get("position") as string;
+    
+    try {
+      console.log('Creating article:', { title, content, position, sectionId: currentSection?.id });
+      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}/articles`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          title,
+          content,
+          position: position ? parseInt(position) : null,
+        }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Article created successfully:', result);
+        toast.success("Article created successfully");
+        setIsCreateArticleDialogOpen(false);
+        await refreshCourseContent(); // Use the new refresh function
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Article creation error:', errorData);
+        toast.error(errorData.message || "Failed to create article");
+      }
+    } catch (error) {
+      console.error("Error creating article:", error);
+      toast.error("Failed to create article");
+    }
+  };
+  const handleUpdateArticle = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const title = formData.get("title") as string;
+    const content = formData.get("content") as string;
+    const position = formData.get("position") as string;
+    
+    try {
+      console.log('Updating article:', { id: currentArticle?.id, title, content, position });
+      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}/articles/${currentArticle?.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          title,
+          content,
+          position: position ? parseInt(position) : null,
+        }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Article updated successfully:', result);
+        toast.success("Article updated successfully");
+        setIsEditArticleDialogOpen(false);
+        await refreshCourseContent(); // Use the new refresh function
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Article update error:', errorData);
+        toast.error(errorData.message || "Failed to update article");
+      }
+    } catch (error) {
+      console.error("Error updating article:", error);
+      toast.error("Failed to update article");
+    }
+  };
+
+  const handleDeleteArticle = async (sectionId: string, articleId: string) => {
+    try {
+      console.log('Deleting article:', { sectionId, articleId });
+      const response = await fetch(`http://localhost/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${sectionId}/articles/${articleId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        console.log('Article deleted successfully');
+        toast.success("Article deleted successfully");
+        await refreshCourseContent(); // Use the new refresh function
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Article deletion error:', errorData);
+        toast.error(errorData.message || "Failed to delete article");
+      }
+    } catch (error) {
+      console.error("Error deleting article:", error);
+      toast.error("Failed to delete article");
+    }
+  };
+
+  const toggleSectionExpanded = (sectionId: string) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(sectionId)) {
+      newExpanded.delete(sectionId);
+    } else {
+      newExpanded.add(sectionId);
+    }
+    setExpandedSections(newExpanded);
   };
 
   // Debug logging
@@ -378,6 +778,13 @@ export const TutorsModule = () => {
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleManageContent(course)}
+                              >
+                                <BookOpen className="mr-2 h-4 w-4" /> Content
+                              </Button>
                             </div>
                           </CardFooter>
                         </Card>
@@ -426,6 +833,13 @@ export const TutorsModule = () => {
                                   onClick={() => handleDeleteCourse(course.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleManageContent(course)}
+                                >
+                                  <BookOpen className="h-4 w-4" />
                                 </Button>
                               </div>
                             </TableCell>
@@ -594,6 +1008,327 @@ export const TutorsModule = () => {
               </Table>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Course Content Dialog */}
+      <Dialog open={isManageContentDialogOpen} onOpenChange={setIsManageContentDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Course Content</DialogTitle>
+            <DialogDescription>
+              Add and organize sections and articles for {currentCourseWithContent?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Sections</h3>
+              <Button onClick={() => setIsCreateSectionDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Add Section
+              </Button>
+            </div>
+            
+            {sections.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No sections created yet.</p>
+                <Button 
+                  onClick={() => setIsCreateSectionDialogOpen(true)}
+                  className="mt-2"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Create First Section
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {sections.sort((a, b) => a.position - b.position).map((section) => (
+                  <Card key={section.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <Collapsible
+                          open={expandedSections.has(section.id)}
+                          onOpenChange={() => toggleSectionExpanded(section.id)}
+                          className="flex-1"
+                        >
+                          <CollapsibleTrigger className="flex items-center space-x-2">
+                            {expandedSections.has(section.id) ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            <span className="font-medium">{section.title}</span>
+                            <span className="text-sm text-muted-foreground">
+                              ({section.articles?.length || 0} articles)
+                            </span>
+                          </CollapsibleTrigger>
+                        </Collapsible>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setCurrentSection(section);
+                              setIsCreateArticleDialogOpen(true);
+                            }}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setCurrentSection(section);
+                              setIsEditSectionDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteSection(section.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <Collapsible
+                      open={expandedSections.has(section.id)}
+                      onOpenChange={() => toggleSectionExpanded(section.id)}
+                    >
+                      <CollapsibleContent>
+                        <CardContent>
+                          {section.articles && section.articles.length > 0 ? (
+                            <div className="space-y-2">
+                              {section.articles.sort((a, b) => a.position - b.position).map((article) => (
+                                <div key={article.id} className="flex items-center justify-between p-2 border rounded">
+                                  <div className="flex-1">
+                                    <h4 className="font-medium">{article.title}</h4>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">
+                                      {article.content}
+                                    </p>
+                                  </div>
+                                  <div className="flex space-x-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setCurrentSection(section);
+                                        setCurrentArticle(article);
+                                        setIsEditArticleDialogOpen(true);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleDeleteArticle(section.id, article.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4">
+                              <p className="text-muted-foreground text-sm">No articles in this section yet.</p>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-2"
+                                onClick={() => {
+                                  setCurrentSection(section);
+                                  setIsCreateArticleDialogOpen(true);
+                                }}
+                              >
+                                <Plus className="mr-2 h-4 w-4" /> Add Article
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Section Dialog */}
+      <Dialog open={isCreateSectionDialogOpen} onOpenChange={setIsCreateSectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Section</DialogTitle>
+            <DialogDescription>
+              Add a new section to organize your course content
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateSection}>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="section-title">Section Title</Label>
+                <Input id="section-title" name="title" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="section-position">Position (optional)</Label>
+                <Input 
+                  id="section-position" 
+                  name="position" 
+                  type="number" 
+                  min="0" 
+                  placeholder="Leave empty for auto-positioning"
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setIsCreateSectionDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create Section</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Section Dialog */}
+      <Dialog open={isEditSectionDialogOpen} onOpenChange={setIsEditSectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Section</DialogTitle>
+            <DialogDescription>
+              Update the section details
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateSection}>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-section-title">Section Title</Label>
+                <Input 
+                  id="edit-section-title" 
+                  name="title" 
+                  defaultValue={currentSection?.title}
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-section-position">Position</Label>
+                <Input 
+                  id="edit-section-position" 
+                  name="position" 
+                  type="number" 
+                  min="0" 
+                  defaultValue={currentSection?.position}
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setIsEditSectionDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Section</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Article Dialog */}
+      <Dialog open={isCreateArticleDialogOpen} onOpenChange={setIsCreateArticleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Article</DialogTitle>
+            <DialogDescription>
+              Add content to {currentSection?.title}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateArticle}>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="article-title">Article Title</Label>
+                <Input id="article-title" name="title" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="article-content">Content</Label>
+                <Textarea 
+                  id="article-content" 
+                  name="content" 
+                  rows={6} 
+                  required 
+                  placeholder="Enter the article content..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="article-position">Position (optional)</Label>
+                <Input 
+                  id="article-position" 
+                  name="position" 
+                  type="number" 
+                  min="0" 
+                  placeholder="Leave empty for auto-positioning"
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setIsCreateArticleDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create Article</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Article Dialog */}
+      <Dialog open={isEditArticleDialogOpen} onOpenChange={setIsEditArticleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Article</DialogTitle>
+            <DialogDescription>
+              Update the article content
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateArticle}>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-article-title">Article Title</Label>
+                <Input 
+                  id="edit-article-title" 
+                  name="title" 
+                  defaultValue={currentArticle?.title}
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-article-content">Content</Label>
+                <Textarea 
+                  id="edit-article-content" 
+                  name="content" 
+                  rows={6} 
+                  defaultValue={currentArticle?.content}
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-article-position">Position</Label>
+                <Input 
+                  id="edit-article-position" 
+                  name="position" 
+                  type="number" 
+                  min="0" 
+                  defaultValue={currentArticle?.position}
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setIsEditArticleDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Article</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
