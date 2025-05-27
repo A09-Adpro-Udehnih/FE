@@ -1,6 +1,6 @@
 import React from 'react'
 import { useLoaderData, Link, Form, useNavigation, useSearchParams } from 'react-router'
-import { BookOpen, Search, Users, Coins, Loader2, SearchCheck } from "lucide-react"
+import { BookOpen, Search, Users, Coins, Loader2, SearchCheck, PlayCircle } from "lucide-react"
 import type { CourseBrowsingLoader } from './loader'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
@@ -102,7 +102,7 @@ export const CourseBrowsingModule = () => {
         {courses.map(course => (
           <Card 
             key={course.id} 
-            className="transition-all hover:shadow-xl group overflow-hidden bg-white relative"
+            className="transition-all hover:shadow-xl group overflow-hidden bg-white relative flex flex-col"
           >
             {/* Decorative gradient accent */}
             <div className={`absolute top-0 left-0 right-0 h-2 w-full bg-gradient-to-r ${getGradientClass(course.id)}`}></div>
@@ -135,11 +135,11 @@ export const CourseBrowsingModule = () => {
               </div>
             </CardHeader>
             
-            <CardContent className="pb-2">
+            <CardContent className="pb-2 flex-grow">
               <p className="text-gray-600 text-sm line-clamp-3">{course.description}</p>
             </CardContent>
             
-            <CardFooter className="flex justify-between items-center pt-3 border-t">
+            <CardFooter className="flex justify-between items-center pt-3 border-t mt-auto">
               <div className="flex items-center space-x-1">
                 <Coins size={16} className={course.price === 0 
                   ? "text-green-600" 
@@ -155,11 +155,22 @@ export const CourseBrowsingModule = () => {
                 size="sm"
                 className={`${course.price === 0 
                   ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700" 
-                  : "bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
+                  : course.enrolled
+                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+                    : "bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
                 } text-white border-0`}
                 asChild
               >
-                <Link to={`/courseDetail/${course.id}`}>View</Link>
+                <Link to={course.enrolled ? `/courseEnrolledDetail/${course.id}` : `/courseDetail/${course.id}`} className="flex items-center gap-1">
+                  {course.enrolled ? (
+                    <>
+                      <PlayCircle size={14} />
+                      Continue
+                    </>
+                  ) : (
+                    'View'
+                  )}
+                </Link>
               </Button>
             </CardFooter>
           </Card>
