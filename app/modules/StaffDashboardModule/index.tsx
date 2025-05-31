@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLoaderData } from 'react-router';
+import { useFetcher, useLoaderData } from 'react-router';
 import { toast } from 'sonner'; 
 
 interface PaymentRef {
@@ -92,33 +92,22 @@ const DataItemCard: React.FC<DataItemCardProps> = ({ item, type, onAction }) => 
 export const StaffDashboardModule = () => {
   const dashboardData = useLoaderData() as DashboardData;
 
-  const handleApproval = async (
+  const fetcher = useFetcher();
+
+  const handleApproval = (
     id: string,
     type: string,
-    action: 'approve' | 'reject'
+    action: "approve" | "reject"
   ) => {
-    try {
-      // const fullurl = ``;
-      const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost/api/v1/staff/approval/${action}/${type}/${id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      console.log(res)
-      if (!res.ok) {
-        const msg = await res.text();
-        toast.error(`Gagal ${action} ${type}: ${msg}`);
-        return;
-      }
+    const formData = new FormData();
+    formData.append("id", id);
+    formData.append("type", type);
+    formData.append("actionType", action);
 
-      toast.success(`${type} ${action === 'approve' ? 'disetujui' : 'ditolak'}!`);
-    } catch (err) {
-      toast.error('Terjadi kesalahan saat mengirim permintaan.');
-      console.error(err);
-    }
+    fetcher.submit(formData, {
+      method: "POST",
+      action: "/staffdashboard", // ganti dengan route action Anda
+    });
   };
 
   const sections = [
