@@ -92,6 +92,9 @@ interface Course {
 export const TutorsModule = () => {
   const navigate = useNavigate();
   const fetcher = useFetcher();
+  const studentsFetcher = useFetcher();
+  const sectionsFetcher = useFetcher();
+  const contentFetcher = useFetcher();
   const { user, tutorApplication, userCourses, error } = useLoaderData<{
     user: any;
     tutorApplication: TutorApplication | null;
@@ -193,75 +196,57 @@ export const TutorsModule = () => {
     });
     
     toast.success("Course deleted successfully");
-  };  const handleViewStudents = async (course: Course) => {
+  };  const handleViewStudents = (course: Course) => {
     setCurrentCourse(course);
     setIsStudentsDialogOpen(true);
     setIsLoadingStudents(true);
     
-    try {
-      console.log('Fetching students for course:', course.id);
-      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${course.id}/students`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Include cookies for authentication
-      });
-      
-      console.log('Students API response status:', response.status);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Students API response data:', data);
-        
-        // Handle both possible response structures
-        const students = data.students || data.data?.students || data || [];
+    // Use server-side fetching
+    const formData = new FormData();
+    formData.append("intent", "get-students");
+    formData.append("courseId", course.id);
+    
+    studentsFetcher.submit(formData, {
+      method: "POST",
+      action: "/tutors",
+    });
+  };
+
+  // Handle students fetcher response
+  useEffect(() => {
+    if (studentsFetcher.state === 'idle' && studentsFetcher.data) {
+      setIsLoadingStudents(false);
+      if (studentsFetcher.data.success) {
+        const students = studentsFetcher.data.data?.students || studentsFetcher.data.data || [];
         setCourseStudents(students);
-        
         if (students.length === 0) {
           toast.info("No students enrolled in this course yet");
         }
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Students API error:', errorData);
-        toast.error(errorData.message || "Failed to load students");
+        toast.error(studentsFetcher.data.message || "Failed to load students");
         setCourseStudents([]);
       }
-    } catch (error) {
-      console.error("Error fetching students:", error);
-      toast.error("Failed to load students");
-      setCourseStudents([]);
-    } finally {
-      setIsLoadingStudents(false);
     }
-  };  const handleManageContent = async (course: Course) => {
+  }, [studentsFetcher.state, studentsFetcher.data]);const handleManageContent = (course: Course) => {
     setCurrentCourseWithContent(course);
     setIsManageContentDialogOpen(true);
     
-    try {
-      console.log('Loading course content for course:', {
-        courseId: course.id,
-        courseName: course.name,
-        endpoint: `https://api.udehnih.site/api/v1/course/courses/${course.id}/sections`
-      });
-      
-      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${course.id}/sections`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
-      
-      console.log('Sections API response status:', response.status);
-      console.log('Sections API response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Sections API response data:', data);
-        
-        // Handle different possible response structures
-        const sections = data.sections || data.data?.sections || data || [];
+    // Use server-side fetching
+    const formData = new FormData();
+    formData.append("intent", "get-sections");
+    formData.append("courseId", course.id);
+    
+    sectionsFetcher.submit(formData, {
+      method: "POST",
+      action: "/tutors",
+    });
+  };
+  
+  // Handle sections fetcher response
+  useEffect(() => {
+    if (sectionsFetcher.state === 'idle' && sectionsFetcher.data) {
+      if (sectionsFetcher.data.success) {
+        const sections = sectionsFetcher.data.data?.sections || sectionsFetcher.data.data || [];
         setSections(sections);
         
         // Set initial expanded state for sections that have articles
@@ -277,281 +262,110 @@ export const TutorsModule = () => {
           toast.info("This course has no sections yet. Create your first section to add content.");
         }
       } else {
-        // Get the response text first to see what we're dealing with
-        const responseText = await response.text();
-        console.error('Sections API failed - Status:', response.status);
-        console.error('Sections API failed - Response text:', responseText);
-        
-        try {
-          const errorData = JSON.parse(responseText);
-          console.error('Sections API error (parsed):', errorData);
-          toast.error(errorData.message || `Failed to load course content (${response.status})`);
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-          toast.error(`Failed to load course content (${response.status}): ${responseText || 'Unknown error'}`);
-        }
+        toast.error(sectionsFetcher.data.message || "Failed to load course content");
         setSections([]);
       }
-    } catch (error) {
-      console.error("Network error fetching course content:", error);
-      toast.error("Network error: Failed to load course content");
-      setSections([]);
     }
-  };
-  // Utility function to refresh course content
-  const refreshCourseContent = async () => {
+  }, [sectionsFetcher.state, sectionsFetcher.data]);
+
+  // Handle content operations (create/update/delete sections and articles)
+  useEffect(() => {
+    if (contentFetcher.state === 'idle' && contentFetcher.data) {
+      if (contentFetcher.data.success) {
+        toast.success(contentFetcher.data.message || "Operation completed successfully");
+        // Refresh the sections list after any content operation
+        refreshCourseContent();
+      } else {
+        toast.error(contentFetcher.data.message || "Operation failed");
+      }
+    }
+  }, [contentFetcher.state, contentFetcher.data]);  // Utility function to refresh course content
+  const refreshCourseContent = () => {
     if (!currentCourseWithContent) return;
     
-    try {
-      console.log('Refreshing course content for course:', currentCourseWithContent.id);
-      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent.id}/sections`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Refreshed sections data:', data);
-        
-        const sections = data.sections || data.data?.sections || data || [];
-        setSections(sections);
-        
-        // Maintain expanded state for sections with articles
-        const expandedSet = new Set(expandedSections);
-        sections.forEach((section: Section) => {
-          if (section.articles && section.articles.length > 0) {
-            expandedSet.add(section.id);
-          }
-        });
-        setExpandedSections(expandedSet);
-      } else {
-        console.error('Failed to refresh course content');
-      }
-    } catch (error) {
-      console.error("Error refreshing course content:", error);
-    }
-  };
-  const handleCreateSection = async (event: React.FormEvent<HTMLFormElement>) => {
+    const formData = new FormData();
+    formData.append("intent", "get-sections");
+    formData.append("courseId", currentCourseWithContent.id);
+    
+    sectionsFetcher.submit(formData, {
+      method: "POST",
+      action: "/tutors",
+    });
+  };  const handleCreateSection = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const title = formData.get("title") as string;
-    const position = formData.get("position") as string;
+    formData.append("intent", "create-section");
+    formData.append("courseId", currentCourseWithContent?.id || "");
     
-    try {
-      console.log('Creating section:', { 
-        title, 
-        position, 
-        courseId: currentCourseWithContent?.id,
-        endpoint: `https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections`
-      });
-      
-      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          title,
-          position: position ? parseInt(position) : null,
-        }),
-      });
-      
-      console.log('Section creation response status:', response.status);
-      console.log('Section creation response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Section created successfully:', result);
-        toast.success("Section created successfully");
-        setIsCreateSectionDialogOpen(false);
-        await refreshCourseContent(); // Use the new refresh function
-      } else {
-        // Get the response text first to see what we're dealing with
-        const responseText = await response.text();
-        console.error('Section creation failed - Status:', response.status);
-        console.error('Section creation failed - Response text:', responseText);
-        
-        try {
-          const errorData = JSON.parse(responseText);
-          console.error('Section creation error (parsed):', errorData);
-          toast.error(errorData.message || `Failed to create section (${response.status})`);
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-          toast.error(`Failed to create section (${response.status}): ${responseText || 'Unknown error'}`);
-        }
-      }
-    } catch (error) {
-      console.error("Network error creating section:", error);
-      toast.error("Network error: Failed to create section");
-    }
-  };
-  const handleUpdateSection = async (event: React.FormEvent<HTMLFormElement>) => {
+    contentFetcher.submit(formData, {
+      method: "POST",
+      action: "/tutors",
+    });
+    
+    setIsCreateSectionDialogOpen(false);
+  };  const handleUpdateSection = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const title = formData.get("title") as string;
-    const position = formData.get("position") as string;
+    formData.append("intent", "update-section");
+    formData.append("courseId", currentCourseWithContent?.id || "");
+    formData.append("sectionId", currentSection?.id || "");
     
-    try {
-      console.log('Updating section:', { id: currentSection?.id, title, position });
-      const response = await fetch(`${process.env.API_URL}api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          title,
-          position: position ? parseInt(position) : null,
-        }),
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Section updated successfully:', result);
-        toast.success("Section updated successfully");
-        setIsEditSectionDialogOpen(false);
-        await refreshCourseContent(); // Use the new refresh function
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Section update error:', errorData);
-        toast.error(errorData.message || "Failed to update section");
-      }
-    } catch (error) {
-      console.error("Error updating section:", error);
-      toast.error("Failed to update section");
-    }
+    contentFetcher.submit(formData, {
+      method: "POST",
+      action: "/tutors",
+    });
+    
+    setIsEditSectionDialogOpen(false);
+  };  const handleDeleteSection = (sectionId: string) => {
+    const formData = new FormData();
+    formData.append("intent", "delete-section");
+    formData.append("courseId", currentCourseWithContent?.id || "");
+    formData.append("sectionId", sectionId);
+    
+    contentFetcher.submit(formData, {
+      method: "POST",
+      action: "/tutors",
+    });
   };
-  const handleDeleteSection = async (sectionId: string) => {
-    try {
-      console.log('Deleting section:', sectionId);
-      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${sectionId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
-      
-      if (response.ok) {
-        console.log('Section deleted successfully');
-        toast.success("Section deleted successfully");
-        await refreshCourseContent();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Section deletion error:', errorData);
-        toast.error(errorData.message || "Failed to delete section");
-      }
-    } catch (error) {
-      console.error("Error deleting section:", error);
-      toast.error("Failed to delete section");
-    }
-  };
-
-  const handleCreateArticle = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateArticle = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const title = formData.get("title") as string;
-    const content = formData.get("content") as string;
-    const position = formData.get("position") as string;
+    formData.append("intent", "create-article");
+    formData.append("courseId", currentCourseWithContent?.id || "");
+    formData.append("sectionId", currentSection?.id || "");
     
-    try {
-      console.log('Creating article:', { title, content, position, sectionId: currentSection?.id });
-      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}/articles`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          title,
-          content,
-          position: position ? parseInt(position) : null,
-        }),
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Article created successfully:', result);
-        toast.success("Article created successfully");
-        setIsCreateArticleDialogOpen(false);
-        await refreshCourseContent(); // Use the new refresh function
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Article creation error:', errorData);
-        toast.error(errorData.message || "Failed to create article");
-      }
-    } catch (error) {
-      console.error("Error creating article:", error);
-      toast.error("Failed to create article");
-    }
-  };
-  const handleUpdateArticle = async (event: React.FormEvent<HTMLFormElement>) => {
+    contentFetcher.submit(formData, {
+      method: "POST",
+      action: "/tutors",
+    });
+    
+    setIsCreateArticleDialogOpen(false);
+  };  const handleUpdateArticle = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const title = formData.get("title") as string;
-    const content = formData.get("content") as string;
-    const position = formData.get("position") as string;
+    formData.append("intent", "update-article");
+    formData.append("courseId", currentCourseWithContent?.id || "");
+    formData.append("sectionId", currentSection?.id || "");
+    formData.append("articleId", currentArticle?.id || "");
     
-    try {
-      console.log('Updating article:', { id: currentArticle?.id, title, content, position });
-      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${currentSection?.id}/articles/${currentArticle?.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          title,
-          content,
-          position: position ? parseInt(position) : null,
-        }),
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Article updated successfully:', result);
-        toast.success("Article updated successfully");
-        setIsEditArticleDialogOpen(false);
-        await refreshCourseContent(); // Use the new refresh function
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Article update error:', errorData);
-        toast.error(errorData.message || "Failed to update article");
-      }
-    } catch (error) {
-      console.error("Error updating article:", error);
-      toast.error("Failed to update article");
-    }
+    contentFetcher.submit(formData, {
+      method: "POST",
+      action: "/tutors",
+    });
+    
+    setIsEditArticleDialogOpen(false);
   };
-
-  const handleDeleteArticle = async (sectionId: string, articleId: string) => {
-    try {
-      console.log('Deleting article:', { sectionId, articleId });
-      const response = await fetch(`https://api.udehnih.site/api/v1/course/courses/${currentCourseWithContent?.id}/sections/${sectionId}/articles/${articleId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
-      
-      if (response.ok) {
-        console.log('Article deleted successfully');
-        toast.success("Article deleted successfully");
-        await refreshCourseContent(); // Use the new refresh function
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Article deletion error:', errorData);
-        toast.error(errorData.message || "Failed to delete article");
-      }
-    } catch (error) {
-      console.error("Error deleting article:", error);
-      toast.error("Failed to delete article");
-    }
+  const handleDeleteArticle = (sectionId: string, articleId: string) => {
+    const formData = new FormData();
+    formData.append("intent", "delete-article");
+    formData.append("courseId", currentCourseWithContent?.id || "");
+    formData.append("sectionId", sectionId);
+    formData.append("articleId", articleId);
+    
+    contentFetcher.submit(formData, {
+      method: "POST",
+      action: "/tutors",
+    });
   };
 
   const toggleSectionExpanded = (sectionId: string) => {
