@@ -51,6 +51,9 @@ export function SectionAndArticleCreationModule() {
   const [isEditArticleModalOpen, setEditArticleModalOpen] = useState(false);
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [currentSectionIdForArticle, setCurrentSectionIdForArticle] = useState<string | null>(null);
+  
+  // Add state for the currently selected article to display in the main content area
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
   const [itemToDelete, setItemToDelete] = useState<{ type: 'section' | 'article', id: string, sectionId?: string } | null>(null);
   const [isConfirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
@@ -61,10 +64,33 @@ export function SectionAndArticleCreationModule() {
   const newArticleContentRef = useRef<HTMLTextAreaElement>(null);
   const editArticleTitleRef = useRef<HTMLInputElement>(null);
   const editArticleContentRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Article content editor ref
+  const articleContentEditorRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setSections(initialSections || []);
-  }, [initialSections]);
+    
+    // After revalidation, try to update the selected article with the latest data
+    if (selectedArticle) {
+      const sectionWithArticle = initialSections?.find(section => 
+        section.articles?.some(article => article.id === selectedArticle.id)
+      );
+      
+      if (sectionWithArticle) {
+        const updatedArticle = sectionWithArticle.articles.find(article => article.id === selectedArticle.id);
+        if (updatedArticle && JSON.stringify(updatedArticle) !== JSON.stringify(selectedArticle)) {
+          setSelectedArticle(updatedArticle);
+          if (articleContentEditorRef.current) {
+            articleContentEditorRef.current.value = updatedArticle.content;
+          }
+        }
+      } else {
+        // If article no longer exists in any section, clear selection
+        setSelectedArticle(null);
+      }
+    }
+  }, [initialSections, selectedArticle]);
 
   useEffect(() => {
     if (actionData) {
@@ -92,6 +118,7 @@ export function SectionAndArticleCreationModule() {
         
         if (intent === 'delete-section') {
           setConfirmDeleteDialogOpen(false);
+          setSelectedArticle(null); // Clear selected article if its section is deleted
           // Revalidate the data to refresh sections
           revalidator.revalidate();
         }
@@ -111,12 +138,24 @@ export function SectionAndArticleCreationModule() {
         
         if (intent === 'update-article') {
           setEditArticleModalOpen(false);
+          
+          // After successfully updating an article, update the selectedArticle if needed
+          if (actionData.article && selectedArticle && actionData.article.id === selectedArticle.id) {
+            setSelectedArticle(actionData.article);
+          }
+          
           // Revalidate the data to refresh sections
           revalidator.revalidate();
         }
         
         if (intent === 'delete-article') {
           setConfirmDeleteDialogOpen(false);
+          
+          // Clear selected article if it was deleted
+          if (selectedArticle && itemToDelete && itemToDelete.type === 'article' && itemToDelete.id === selectedArticle.id) {
+            setSelectedArticle(null);
+          }
+          
           // Revalidate the data to refresh sections
           revalidator.revalidate();
         }
@@ -126,7 +165,7 @@ export function SectionAndArticleCreationModule() {
         setError(actionData.message || "An unspecified error occurred.");
       }
     }
-  }, [actionData, revalidator]);
+  }, [actionData, revalidator, selectedArticle, itemToDelete]);
   
 
   const handleCreateSection = () => {
@@ -230,6 +269,33 @@ export function SectionAndArticleCreationModule() {
     if (editArticleContentRef.current) editArticleContentRef.current.value = article.content;
     setEditArticleModalOpen(true);
   };
+  
+  // Function to select an article to display in the main content area
+  const selectArticleForEditing = (article: Article, sectionId: string) => {
+    setSelectedArticle(article);
+    setCurrentSectionIdForArticle(sectionId);
+    if (articleContentEditorRef.current) {
+      articleContentEditorRef.current.value = article.content;
+    }
+  };
+  
+  // Function to save article content changes
+  const handleSaveArticleContent = () => {
+    if (!selectedArticle || !currentSectionIdForArticle || !courseId) return;
+    
+    const content = articleContentEditorRef.current?.value;
+    if (!content) return;
+    
+    const formData = new FormData();
+    formData.append("intent", "update-article");
+    formData.append("courseId", courseId);
+    formData.append("sectionId", currentSectionIdForArticle);
+    formData.append("articleId", selectedArticle.id);
+    formData.append("title", selectedArticle.title);
+    formData.append("content", content);
+    
+    fetcher.submit(formData, { method: "post" });
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -251,58 +317,99 @@ export function SectionAndArticleCreationModule() {
          </Alert>
       )}
 
-
-      <div className="mb-6">
-        <Button onClick={() => setCreateSectionModalOpen(true)} className="flex items-center">
-          <PlusCircle className="mr-2 h-5 w-5" /> Create New Section
-        </Button>
-      </div>
-
-      <Accordion type="multiple" className="w-full space-y-3">
-        {(sections || []).map((section: Section, index: number) => (
-          <AccordionItem value={section.id || `section-${index}`} key={section.id || `section-${index}`} className="bg-gray-50 rounded-lg shadow">
-            <AccordionTrigger className="hover:bg-gray-100 px-4 py-3 rounded-t-lg w-full text-left">
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center">
-                  <GripVertical className="mr-2 h-5 w-5 text-gray-400" />
-                  <span className="font-semibold text-lg">Section {section.position}: {section.title}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openEditSectionModal(section); }}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteConfirmation('section', section.id); }}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="p-4 border-t border-gray-200">
-              <div className="space-y-2 mb-3">
-                {(section.articles || []).map((article: Article, articleIndex: number) => ( 
-                  <div key={article.id || `article-${articleIndex}`} className="flex items-center justify-between p-3 bg-white rounded shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center">
-                      <FileText className="mr-2 h-5 w-5 text-blue-500" />
-                      <span>Article {article.position}: {article.title}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                       <Button variant="outline" size="sm" onClick={() => openEditArticleModal(article, section.id)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteConfirmation('article', article.id, section.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+      <div className="flex">
+        {/* Sidebar with sections and articles */}
+        <div className="w-1/4 bg-gray-50 p-4 border-r border-gray-200 min-h-[70vh] overflow-y-auto">
+          <div className="mb-4">
+            <Button onClick={() => setCreateSectionModalOpen(true)} className="flex items-center w-full">
+              <PlusCircle className="mr-2 h-5 w-5" /> Create New Section
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            {(sections || []).map((section: Section, index: number) => (
+              <div key={section.id || `section-${index}`} className="bg-white rounded-lg shadow">
+                <div className="px-4 py-3 flex items-center justify-between bg-gray-100 rounded-t-lg">
+                  <div className="flex items-center">
+                    <GripVertical className="mr-2 h-5 w-5 text-gray-400" />
+                    <span className="font-semibold">Section {section.position}: {section.title}</span>
                   </div>
-                ))}
+                  <div className="flex items-center space-x-1">
+                    <Button variant="ghost" size="sm" onClick={() => openEditSectionModal(section)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDeleteConfirmation('section', section.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="p-2">
+                  {(section.articles || []).length > 0 ? (
+                    <div className="space-y-1">
+                      {section.articles.map((article: Article, articleIndex: number) => (
+                        <div 
+                          key={article.id || `article-${articleIndex}`} 
+                          className={`flex items-center justify-between px-3 py-2 rounded cursor-pointer ${selectedArticle?.id === article.id ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-gray-50'}`}
+                          onClick={() => selectArticleForEditing(article, section.id)}
+                        >
+                          <div className="flex items-center">
+                            <FileText className="mr-2 h-4 w-4 text-blue-500" />
+                            <span className="text-sm">{article.title}</span>
+                          </div>
+                          <div className="flex items-center space-x-1 opacity-0 hover:opacity-100">
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); openEditArticleModal(article, section.id); }}>
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-500" onClick={(e) => { e.stopPropagation(); handleDeleteConfirmation('article', article.id, section.id); }}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 py-2 px-3">No articles in this section</p>
+                  )}
+                  <Button variant="ghost" size="sm" className="w-full text-blue-600 mt-2" onClick={() => openCreateArticleModal(section.id)}>
+                    <PlusCircle className="mr-1 h-3 w-3" /> Add Article
+                  </Button>
+                </div>
               </div>
-              <Button variant="ghost" className="text-blue-600 hover:text-blue-700" onClick={() => openCreateArticleModal(section.id)}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Article
-              </Button>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+            ))}
+          </div>
+        </div>
+        
+        {/* Main content - Article editor */}
+        <div className="w-3/4 p-4">
+          {selectedArticle ? (
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">{selectedArticle.title}</h2>
+                <Button onClick={handleSaveArticleContent} disabled={fetcher.state === 'submitting'}>
+                  {fetcher.state === 'submitting' && fetcher.formData?.get('intent') === 'update-article' ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+              <div>
+                <Label htmlFor="article-content-editor" className="mb-2 block">Content</Label>
+                <Textarea 
+                  id="article-content-editor" 
+                  ref={articleContentEditorRef} 
+                  defaultValue={selectedArticle.content}
+                  className="min-h-[60vh] font-mono"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <div className="text-center">
+                <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No article selected</h3>
+                <p className="mt-1 text-sm text-gray-500">Select an article from the sidebar to edit its content</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Create Section Modal */}
       <Dialog open={isCreateSectionModalOpen} onOpenChange={setCreateSectionModalOpen}>
