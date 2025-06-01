@@ -22,17 +22,18 @@ export async function TutorsLoader({ request }: LoaderFunctionArgs) {
   }
 
   try {    // Check if user has a tutor application
-    let applicationResponse;
-    try {      const response = await fetcher<{
+    let applicationResponse;    try {      const response = await fetcher<{
         status: string;
         tutorApplicationId?: string; 
       }>("api/v1/course/tutors/registration", request, true);
-        // The API returns { status, tutorApplicationId } directly, not wrapped in a data property
-      const status = (response as any)?.status || null;
-      const tutorApplicationId = (response as any)?.tutorApplicationId || null;
+        // The API returns { status, tutorApplicationId } directly, but fetcher might wrap it
+        // Check both response.data and response directly for compatibility
+        const status = response.data?.status || (response as any)?.status || null;
+        const tutorApplicationId = response.data?.tutorApplicationId || (response as any)?.tutorApplicationId || null;
       
       console.log("TutorsLoader: parsed status =", status);
       console.log("TutorsLoader: parsed tutorApplicationId =", tutorApplicationId);
+      console.log("TutorsLoader: full response =", response);
       
       applicationResponse = {
         success: response.success,
@@ -44,7 +45,7 @@ export async function TutorsLoader({ request }: LoaderFunctionArgs) {
         },
         message: response.message
       };
-    } catch (error) {
+    }catch (error) {
       console.log('Failed to fetch tutor application:', error);
       applicationResponse = { success: false, data: null, message: 'Not found' };
     }
@@ -53,13 +54,14 @@ export async function TutorsLoader({ request }: LoaderFunctionArgs) {
     let coursesResponse = null;
     const isTeacher = user.role === "tutor" || user.role === "TUTOR";
     const isAcceptedTutor = applicationResponse.success && applicationResponse.data?.status === "ACCEPTED";
-    
-    if (isTeacher || isAcceptedTutor) {      try {
+      if (isTeacher || isAcceptedTutor) {      try {
         const response = await fetcher<{ courses: any[] }>("api/v1/course/courses/mine", request, true);
         
-        // The API returns courses directly, not wrapped in a data property
-        const courses = (response as any)?.courses || [];
+        // The API returns { code, success, courses } - courses is directly in the response
+        // But fetcher wraps it in GeneralResponse, so we need to check response.data
+        const courses = response.data?.courses || (response as any)?.courses || [];
         console.log("TutorsLoader: fetched courses =", courses);
+        console.log("TutorsLoader: full response =", response);
         
         coursesResponse = {
           success: response.success,

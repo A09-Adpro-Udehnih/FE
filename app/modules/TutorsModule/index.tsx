@@ -221,25 +221,16 @@ export const TutorsModule = () => {
         setCourseStudents(students);
         if (students.length === 0) {
           toast.info("No students enrolled in this course yet");
-        }
-      } else {
+        }      } else {
         toast.error(studentsFetcher.data.message || "Failed to load students");
         setCourseStudents([]);
       }
     }
-  }, [studentsFetcher.state, studentsFetcher.data]);const handleManageContent = (course: Course) => {
-    setCurrentCourseWithContent(course);
-    setIsManageContentDialogOpen(true);
-    
-    // Use server-side fetching
-    const formData = new FormData();
-    formData.append("intent", "get-sections");
-    formData.append("courseId", course.id);
-    
-    sectionsFetcher.submit(formData, {
-      method: "POST",
-      action: "/tutors",
-    });
+  }, [studentsFetcher.state, studentsFetcher.data]);
+
+  const handleManageContent = (course: Course) => {
+    // Navigate to section and article creation module
+    navigate(`/sectionAndArticleCreation/${course.id}`);
   };
   
   // Handle sections fetcher response
